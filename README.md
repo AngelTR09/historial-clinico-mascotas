@@ -1,7 +1,7 @@
 # historial-clinico-mascotas
 Plataforma de registro de historial clínico y salud para mascotas: perfil, vacunas, eventos clínicos y ficha pública por QR.
 
-> Proyecto académico — UPAO, curso Arquitectura de Sistemas.
+> Proyecto académico — UPAO, Infraestructura como Código.
 
 ## INTEGRANTES:
 - Caipo Trujillo, Sonia Fernanda
