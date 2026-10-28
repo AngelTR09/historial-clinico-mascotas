@@ -45,7 +45,7 @@ La API (Fastify + PostgreSQL) y la web (React + Vite) comparten los esquemas de 
 la nube será un servicio de AWS (almacenamiento, colas, correo, secretos) está detrás de un puerto, con un adaptador
 local y uno de AWS; se elige con `PROVEEDOR=local|aws`.
 
-## Levantarlo con Docker (recomendado)
+## Levantarlo con Docker
 
 No hace falta tener Node ni pnpm: todo corre en contenedores.
 
@@ -137,37 +137,56 @@ pnpm verify          # lockfile, lint, pruebas, build y auditoría de dependenci
 
 ## Desplegar a AWS
 
-Terraform (`infra/`) solo crea la infraestructura. El despliegue completo lo hace el workflow
-`.github/workflows/deploy.yml`, que después del `terraform apply` carga los secretos, construye y publica la
-imagen de la API, registra la tarea de ECS, corre las migraciones, actualiza las Lambdas, publica la web y
-termina con una prueba de humo. Los scripts están en `scripts/despliegue/`.
+Terraform levanta la infraestructura: red, base de datos, ECS, CloudFront, colas y Lambdas. La aplicación la sube
+el workflow `.github/workflows/deploy.yml`, que después del `terraform apply` carga los secretos, publica la imagen
+de la API, corre las migraciones, actualiza las Lambdas y sube la web. Termina con una prueba de humo contra
+CloudFront. Los scripts que usa están en `scripts/despliegue/`.
 
-**Una sola vez** (cuenta nueva): crear el bootstrap (bucket de estado, claves, presupuestos y roles de GitHub) y
-cargar sus salidas como variables del repositorio (`AWS_ROLE_ARN`, `AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`,
-`AWS_TFSTATE_KMS_KEY`, `AWS_ACCOUNT_ID`, `AWS_REGION`, `CORREO_ALERTAS`, `CORREO_REMITENTE`), con el
-environment `dev` protegido en GitHub.
+### Preparar la cuenta (una sola vez)
+
+El bootstrap crea el bucket del estado de Terraform con su clave de cifrado, los presupuestos y los dos roles que
+asume GitHub Actions. Se aplica desde una terminal con credenciales de la cuenta:
 
 ```bash
 cd infra/envs/bootstrap
-cp terraform.example.tfvars terraform.tfvars   # completa tus valores
-terraform init && terraform apply
+cp terraform.example.tfvars terraform.tfvars
+terraform init
+terraform apply
 ```
 
-**Cada despliegue:** integrar `main` en `development`; el workflow espera la aprobación del environment `dev`.
+Con sus salidas se cargan las variables del repositorio en GitHub (Settings, Secrets and variables, Actions):
+`AWS_ROLE_ARN`, `AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`, `AWS_TFSTATE_KMS_KEY`, `AWS_ACCOUNT_ID`, `AWS_REGION`,
+`CORREO_ALERTAS` y `CORREO_REMITENTE`. También hace falta el environment `dev`, limitado a la rama `development`
+y con aprobación obligatoria. El rol de despliegue solo confía en ese environment.
+
+### Desplegar
+
+Se despliega lo que esté en `development`:
 
 ```bash
-git checkout development && git merge main && git push origin development
+git checkout development
+git merge main
+git push origin development
 ```
 
-Aprueba el run en la pestaña *Actions*. Al terminar, la URL de la web (CloudFront) aparece en el resumen del run.
+El run queda esperando la aprobación del environment `dev` en la pestaña Actions. Cuando termina, el resumen
+muestra la URL de la web.
 
-**Dos pasos manuales por correo** (SES en modo sandbox): abrir el enlace de verificación que llega al correo
-remitente y confirmar la suscripción SNS del correo de alertas.
+SES está en modo sandbox. Después de desplegar llegan dos correos: el enlace de verificación del remitente y la
+confirmación de la suscripción a las alertas. Hay que abrir los dos; sin el primero, SES no envía los códigos de
+inicio de sesión.
 
-**Apagar** (para no gastar créditos), desde `infra/envs/dev` con un `backend.hcl` copiado de `backend.example.hcl`:
+### Apagar
+
+Entre sesiones de laboratorio el entorno se destruye para no gastar créditos. El bootstrap se queda, porque guarda
+el estado. `backend.hcl` se completa con los datos del bootstrap y Terraform pide `owner`, `correos_alerta` y
+`correo_remitente`, los mismos valores que usa el workflow:
 
 ```bash
-terraform init -backend-config=backend.hcl && terraform destroy
+cd infra/envs/dev
+cp backend.example.hcl backend.hcl
+terraform init -backend-config=backend.hcl
+terraform destroy
 ```
 
 ## Documentación
