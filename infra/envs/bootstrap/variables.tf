@@ -37,3 +37,14 @@ variable "crear_proveedor_oidc" {
   description = "Crear el proveedor OIDC de GitHub; false si la cuenta ya tiene uno."
   default     = true
 }
+
+variable "ids_cuentas_permitidas" {
+  type        = list(string)
+  description = "Cuentas de AWS contra las que se permite operar; Terraform se niega a seguir en cualquier otra. Vacía: sin restricción (CI la llena con la variable AWS_ACCOUNT_ID)."
+  default     = []
+
+  validation {
+    condition     = alltrue([for id in var.ids_cuentas_permitidas : can(regex("^[0-9]{12}$", id))])
+    error_message = "Cada cuenta debe ser un identificador de 12 dígitos."
+  }
+}
