@@ -55,3 +55,23 @@ run "rechaza_repositorio_mal_formado" {
 
   expect_failures = [var.repositorio_github]
 }
+
+run "el_plan_solo_escribe_archivos_de_bloqueo_en_el_bucket_de_estado" {
+  command = plan
+
+  assert {
+    condition = anytrue([
+      for st in jsondecode(aws_iam_role_policy.plan_estado.policy).Statement :
+      st.Effect == "Allow" && contains(try(tolist(st.Action), [st.Action]), "s3:PutObject") && try(st.Resource == "arn:aws:s3:::hcm-tfstate-123456789012/*.tflock", false)
+    ])
+    error_message = "El rol de plan debe poder escribir el archivo de bloqueo (use_lockfile) en el bucket de estado."
+  }
+
+  assert {
+    condition = alltrue([
+      for st in jsondecode(aws_iam_role_policy.plan_estado.policy).Statement :
+      !(st.Effect == "Allow" && contains(try(tolist(st.Action), [st.Action]), "s3:PutObject") && !try(st.Resource == "arn:aws:s3:::hcm-tfstate-123456789012/*.tflock", false))
+    ])
+    error_message = "El rol de plan no puede escribir nada más que los *.tflock: ni el estado ni otros objetos."
+  }
+}

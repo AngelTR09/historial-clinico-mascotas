@@ -6,5 +6,8 @@ correos_alerta = ["tu-correo@example.com"]
 # de anomalías por defecto: copia su ARN (aws ce get-anomaly-monitors) y descomenta.
 # arn_monitor_anomalias_existente = "arn:aws:ce::<cuenta>:anomalymonitor/<id>"
 
+# Recomendado: Terraform se niega a operar si las credenciales son de otra cuenta.
+# ids_cuentas_permitidas = ["<id-de-cuenta>"]
+
 # true si la cuenta ya tiene el proveedor OIDC de GitHub (solo admite uno).
 # crear_proveedor_oidc = false

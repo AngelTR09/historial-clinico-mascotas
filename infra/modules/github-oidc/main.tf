@@ -74,6 +74,14 @@ resource "aws_iam_role_policy" "plan_estado" {
         Action   = ["s3:GetObject", "s3:ListBucket"]
         Resource = [var.arn_bucket_estado, "${var.arn_bucket_estado}/*"]
       },
+      # use_lockfile bloquea el estado con un objeto <clave>.tflock dentro del mismo bucket: el plan
+      # solo puede escribir y borrar esos archivos, nunca el estado ni otro objeto.
+      {
+        Sid      = "BloquearEstadoConArchivo"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "${var.arn_bucket_estado}/*.tflock"
+      },
       {
         Sid      = "BloquearEstado"
         Effect   = "Allow"
