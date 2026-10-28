@@ -212,6 +212,10 @@ resource "aws_ecs_task_definition" "api" {
 # aws-elb-alb-not-public: El ALB es el origen de CloudFront y debe ser alcanzable por internet; su grupo de seguridad solo admite la lista de prefijos gestionada de CloudFront.
 #tfsec:ignore:aws-elb-alb-not-public
 resource "aws_lb" "api" {
+  #checkov:skip=CKV_AWS_150:deletion_protection lo controla proteccion_alb: true en prod, false en dev para poder hacer destroy
+  #checkov:skip=CKV2_AWS_20:La TLS termina en CloudFront; el ALB solo es alcanzable desde la lista de prefijos de CloudFront
+  #checkov:skip=CKV2_AWS_28:WAF diferido: se enciende solo en la demostracion de seguridad (cobra por regla) y va delante de CloudFront
+  #checkov:skip=CKV_AWS_91:Sin logs de acceso del ALB: CloudFront ya los registra y el volumen en S3 no tiene RNF que lo pida
   name                       = "${var.nombre_proyecto}-alb"
   load_balancer_type         = "application"
   internal                   = false
@@ -224,6 +228,7 @@ resource "aws_lb" "api" {
 }
 
 resource "aws_lb_target_group" "api" {
+  #checkov:skip=CKV_AWS_378:Trafico HTTP interno entre el ALB y las tareas dentro de la VPC; la TLS termina en CloudFront
   name                 = "${var.nombre_proyecto}-api"
   port                 = 3000
   protocol             = "HTTP"
@@ -246,6 +251,8 @@ resource "aws_lb_target_group" "api" {
 # aws-elb-http-not-used: Compromiso de costo del PMV (documentación del proyecto §18): sin dominio propio no hay certificado ACM para el ALB. La TLS termina en CloudFront y el ALB solo admite la lista de prefijos de CloudFront.
 #tfsec:ignore:aws-elb-http-not-used
 resource "aws_lb_listener" "http" {
+  #checkov:skip=CKV_AWS_2:La TLS termina en CloudFront; el ALB solo es alcanzable desde la lista de prefijos de CloudFront
+  #checkov:skip=CKV_AWS_103:Sin listener HTTPS: no hay dominio propio ni certificado ACM en el PMV
   load_balancer_arn = aws_lb.api.arn
   port              = 80
   protocol          = "HTTP"
@@ -259,6 +266,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_ecs_service" "api" {
+  #checkov:skip=CKV_AWS_333:Las tareas necesitan IP publica para llegar a las APIs de AWS sin NAT Gateway (documentación del proyecto.md §11); el grupo de seguridad solo admite trafico del ALB
   name            = local.nombre_servicio
   cluster         = aws_ecs_cluster.principal.id
   task_definition = aws_ecs_task_definition.api.arn

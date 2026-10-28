@@ -16,6 +16,7 @@ locals {
 # aws-ec2-require-vpc-flow-logs-for-all-vpcs: Flow logs diferidos: no los exige ningún RNF del PDF y suman costo de ingesta (documentación del proyecto §18).
 #tfsec:ignore:aws-ec2-require-vpc-flow-logs-for-all-vpcs
 resource "aws_vpc" "principal" {
+  #checkov:skip=CKV2_AWS_11:Flow logs diferidos: no los exige ningun RNF del PDF y suman costo de ingesta
   cidr_block           = var.cidr_vpc
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -123,6 +124,7 @@ resource "aws_vpc_endpoint" "interfaz" {
 # Cadena: CloudFront -> ALB -> API -> RDS. Las Lambdas llegan a RDS y a los endpoints.
 
 resource "aws_security_group" "alb" {
+  #checkov:skip=CKV2_AWS_5:Se adjunta en el modulo computo mediante la salida id_sg_alb
   name        = "${var.nombre_proyecto}-alb"
   description = "ALB: solo recibe trafico de CloudFront"
   vpc_id      = aws_vpc.principal.id
@@ -131,6 +133,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "api" {
+  #checkov:skip=CKV2_AWS_5:Se adjunta en el modulo computo mediante la salida id_sg_api
   name        = "${var.nombre_proyecto}-api"
   description = "Tareas Fargate de la API"
   vpc_id      = aws_vpc.principal.id
@@ -139,6 +142,7 @@ resource "aws_security_group" "api" {
 }
 
 resource "aws_security_group" "db" {
+  #checkov:skip=CKV2_AWS_5:Se adjunta en el modulo datos mediante la salida id_sg_db
   name        = "${var.nombre_proyecto}-db"
   description = "RDS PostgreSQL: solo la API y las Lambdas"
   vpc_id      = aws_vpc.principal.id
@@ -147,6 +151,7 @@ resource "aws_security_group" "db" {
 }
 
 resource "aws_security_group" "funciones" {
+  #checkov:skip=CKV2_AWS_5:Se adjunta en el modulo trabajadores mediante la salida id_sg_funciones
   name        = "${var.nombre_proyecto}-funciones"
   description = "Lambdas dentro de la VPC"
   vpc_id      = aws_vpc.principal.id
@@ -163,6 +168,7 @@ resource "aws_security_group" "endpoints" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "alb_desde_cloudfront" {
+  #checkov:skip=CKV_AWS_260:No es 0.0.0.0/0: el origen es la lista de prefijos gestionada de CloudFront
   security_group_id = aws_security_group.alb.id
   description       = "HTTP desde los origenes de CloudFront (TLS termina en CloudFront)"
   ip_protocol       = "tcp"

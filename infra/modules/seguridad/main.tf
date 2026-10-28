@@ -61,6 +61,7 @@ resource "aws_kms_alias" "datos" {
 }
 
 resource "aws_secretsmanager_secret" "api" {
+  #checkov:skip=CKV2_AWS_57:No se rota automaticamente: rotar DOC_ENCRYPTION_KEY o DOC_HMAC_PEPPER con datos reales rompe el indice HMAC y el descifrado (plan de migracion, fase 2)
   for_each = local.secretos
 
   name                    = "${var.nombre_proyecto}/${each.key}"
@@ -72,6 +73,7 @@ resource "aws_secretsmanager_secret" "api" {
 }
 
 resource "aws_ssm_parameter" "configuracion" {
+  #checkov:skip=CKV2_AWS_34:Son banderas de configuracion no secretas (p. ej. OCR_ENABLED); los secretos van en Secrets Manager
   for_each = var.parametros
 
   name  = "/${var.nombre_proyecto}/${each.key}"

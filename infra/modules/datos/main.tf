@@ -30,6 +30,11 @@ resource "aws_db_parameter_group" "postgres" {
 # aws-rds-enable-deletion-protection: Se controla con proteccion_contra_borrado: true en prod y false en dev, para poder hacer destroy fuera de las sesiones de laboratorio.
 #tfsec:ignore:aws-rds-enable-performance-insights
 resource "aws_db_instance" "principal" {
+  #checkov:skip=CKV_AWS_293:deletion_protection lo controla proteccion_contra_borrado: true en prod, false en dev para poder hacer destroy
+  #checkov:skip=CKV_AWS_353:Sin Performance Insights: las metricas de CloudWatch alcanzan para los RNF y la clase micro no los aprovecha
+  #checkov:skip=CKV_AWS_157:Multi-AZ se controla con la variable multi_az: apagado por defecto por costo, se enciende en exposicion y pruebas
+  #checkov:skip=CKV_AWS_118:Sin monitoreo mejorado: las metricas de CloudWatch alcanzan para los RNF; evita rol y costo adicional
+  #checkov:skip=CKV2_AWS_30:Sin log de consultas: podria registrar datos personales y el pino de la API ya audita
   identifier     = "${var.nombre_proyecto}-postgres"
   engine         = "postgres"
   engine_version = "17"
@@ -101,6 +106,9 @@ resource "aws_dynamodb_table" "perfil_publico" {
 # aws-s3-enable-bucket-logging: Sin logs de acceso de S3: la auditoría de expedientes (RN 9) vive en audit_log, no en logs de S3.
 #tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "evidencias" {
+  #checkov:skip=CKV_AWS_18:Sin logs de acceso: la auditoria de expedientes (RN 9) vive en audit_log, no en logs de S3
+  #checkov:skip=CKV_AWS_144:Sin replicacion entre regiones: no la exige ningun RNF y duplicaria el costo de las imagenes
+  #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: el OCR se encola desde la API, no desde S3
   bucket = "${var.nombre_proyecto}-evidencias-${data.aws_caller_identity.actual.account_id}"
 
   tags = var.etiquetas_comunes
