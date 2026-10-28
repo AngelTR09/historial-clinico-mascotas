@@ -60,7 +60,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Las pruebas de la web usan jsdom 30, que exige Node >= 22.22. Los Dockerfiles siguen en Node 20: no corren pruebas.
+          node-version: 22
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
