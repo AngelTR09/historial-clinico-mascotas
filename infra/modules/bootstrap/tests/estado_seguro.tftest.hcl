@@ -25,8 +25,24 @@ run "estado_cifrado_versionado_y_privado" {
   }
 
   assert {
-    condition     = aws_dynamodb_table.bloqueo.hash_key == "LockID" && aws_dynamodb_table.bloqueo.billing_mode == "PAY_PER_REQUEST"
-    error_message = "La tabla de bloqueo usa LockID y facturación bajo demanda."
+    condition     = strcontains(aws_s3_bucket.estado.bucket, "-tfstate-")
+    error_message = "El bucket de estado lleva el nombre del proyecto."
+  }
+}
+
+run "el_nombre_del_bucket_incluye_la_region" {
+  command = plan
+
+  override_data {
+    target = data.aws_region.actual
+    values = {
+      name = "us-east-2"
+    }
+  }
+
+  assert {
+    condition     = endswith(aws_s3_bucket.estado.bucket, "-us-east-2")
+    error_message = "El bucket de estado debe llevar la región en el nombre."
   }
 }
 

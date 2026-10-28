@@ -1,17 +1,19 @@
-# Backend remoto de Terraform: bucket S3 versionado y cifrado + tabla DynamoDB de
-# bloqueo. Se crea UNA vez con estado local (envs/bootstrap) y luego dev y prod lo
-# usan como backend. `terraform destroy` fuera de laboratorio NO debe borrarlo:
+# Backend remoto de Terraform: bucket S3 versionado y cifrado, en la región elegida. El bloqueo del
+# estado usa el archivo <clave>.tflock del propio bucket (use_lockfile), sin tabla DynamoDB. Se crea UNA
+# vez con estado local (envs/bootstrap) y luego dev y prod lo usan como backend. `terraform destroy` fuera de laboratorio NO debe borrarlo:
 # cuesta centavos y perder el estado deja huérfana toda la infraestructura.
 
 data "aws_caller_identity" "actual" {}
+data "aws_region" "actual" {}
 
 locals {
-  nombre_bucket = "${var.nombre_proyecto}-tfstate-${data.aws_caller_identity.actual.account_id}"
-  nombre_tabla  = "${var.nombre_proyecto}-tflock"
+  # La región va en el nombre: los nombres de bucket son únicos en todo el mundo y el bucket anterior (en otra
+  # región) puede existir todavía mientras se migra.
+  nombre_bucket = "${var.nombre_proyecto}-tfstate-${data.aws_caller_identity.actual.account_id}-${data.aws_region.actual.name}"
 }
 
 resource "aws_kms_key" "estado" {
-  description             = "Cifra el estado de Terraform y su tabla de bloqueo"
+  description             = "Cifra el estado de Terraform"
   enable_key_rotation     = true
   deletion_window_in_days = 30
 
@@ -115,30 +117,4 @@ resource "aws_s3_bucket_policy" "estado" {
   })
 
   depends_on = [aws_s3_bucket_public_access_block.estado]
-}
-
-resource "aws_dynamodb_table" "bloqueo" {
-  name         = local.nombre_tabla
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
-
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
-
-  point_in_time_recovery {
-    enabled = true
-  }
-
-  server_side_encryption {
-    enabled     = true
-    kms_key_arn = aws_kms_key.estado.arn
-  }
-
-  lifecycle {
-    prevent_destroy = true
-  }
-
-  tags = var.etiquetas_comunes
 }

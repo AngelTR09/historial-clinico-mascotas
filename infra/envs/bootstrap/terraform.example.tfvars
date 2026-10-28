@@ -6,6 +6,9 @@ correos_alerta = ["tu-correo@example.com"]
 # de anomalías por defecto: copia su ARN (aws ce get-anomaly-monitors) y descomenta.
 # arn_monitor_anomalias_existente = "arn:aws:ce::<cuenta>:anomalymonitor/<id>"
 
+# Prefijo del estado del entorno dev (la clave es <prefijo>/terraform.tfstate). El rol de despliegue solo toca este prefijo.
+# prefijo_estado = "lab09/dev"
+
 # Recomendado: Terraform se niega a operar si las credenciales son de otra cuenta.
 # ids_cuentas_permitidas = ["<id-de-cuenta>"]
 

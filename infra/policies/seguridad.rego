@@ -40,8 +40,7 @@ deny contains msg if {
 	crea(rc)
 	rc.type == "aws_iam_role_policy_attachment"
 	endswith(rc.change.after.policy_arn, "/AdministratorAccess")
-	not endswith(rc.address, "github_oidc.aws_iam_role_policy_attachment.apply")
-	msg := sprintf("%s adjunta AdministratorAccess: solo se permite en el rol de apply de OIDC", [rc.address])
+	msg := sprintf("%s adjunta AdministratorAccess: ningún rol lo usa, el despliegue tiene su propia política administrada", [rc.address])
 }
 
 # En prod ningún recurso con datos puede borrarse con contenido: force_destroy/force_delete es solo de dev.

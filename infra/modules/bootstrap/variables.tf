@@ -1,6 +1,6 @@
 variable "nombre_proyecto" {
   type        = string
-  description = "Prefijo de los recursos de estado (bucket y tabla de bloqueo)."
+  description = "Prefijo de los recursos de estado (bucket de estado)."
   default     = "hcm"
 }
 

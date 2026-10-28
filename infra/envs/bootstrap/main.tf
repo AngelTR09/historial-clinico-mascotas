@@ -44,7 +44,8 @@ module "github_oidc" {
   prefijo_sub_github   = var.prefijo_sub_github
   crear_proveedor_oidc = var.crear_proveedor_oidc
   arn_bucket_estado    = module.estado.arn_bucket_estado
-  arn_tabla_bloqueo    = module.estado.arn_tabla_bloqueo
   arn_clave_estado     = module.estado.arn_clave_estado
+  prefijo_estado       = var.prefijo_estado
+  region               = var.region
   etiquetas_comunes    = local.etiquetas
 }
