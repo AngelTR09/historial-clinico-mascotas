@@ -13,6 +13,7 @@ locals {
 # ---------- ECR ----------
 
 resource "aws_ecr_repository" "api" {
+  force_delete         = var.forzar_borrado
   name                 = "${var.nombre_proyecto}-api"
   image_tag_mutability = "IMMUTABLE"
 

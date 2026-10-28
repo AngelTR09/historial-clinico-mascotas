@@ -142,3 +142,9 @@ variable "arns_secretos" {
   type        = list(string)
   description = "Secretos que la tarea puede leer."
 }
+
+variable "forzar_borrado" {
+  type        = bool
+  description = "Permite que terraform destroy borre el repositorio de imágenes aunque tenga imágenes aunque tenga contenido. Solo true en dev (sin él el destroy falla); en prod siempre false y una política OPA lo impide."
+  default     = false
+}

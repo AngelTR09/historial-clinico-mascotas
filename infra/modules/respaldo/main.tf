@@ -4,8 +4,9 @@
 # demostración (paso 13 del guion del PMV).
 
 resource "aws_backup_vault" "principal" {
-  name        = "${var.nombre_proyecto}-boveda"
-  kms_key_arn = var.arn_clave_datos
+  force_destroy = var.forzar_borrado
+  name          = "${var.nombre_proyecto}-boveda"
+  kms_key_arn   = var.arn_clave_datos
 
   tags = var.etiquetas_comunes
 }

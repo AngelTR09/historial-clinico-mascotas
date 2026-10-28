@@ -43,3 +43,19 @@ deny contains msg if {
 	not endswith(rc.address, "github_oidc.aws_iam_role_policy_attachment.apply")
 	msg := sprintf("%s adjunta AdministratorAccess: solo se permite en el rol de apply de OIDC", [rc.address])
 }
+
+# En prod ningún recurso con datos puede borrarse con contenido: force_destroy/force_delete es solo de dev.
+borrado_forzado := {
+	"aws_s3_bucket": "force_destroy",
+	"aws_ecr_repository": "force_delete",
+	"aws_backup_vault": "force_destroy",
+}
+
+deny contains msg if {
+	some rc in input.resource_changes
+	crea(rc)
+	atributo := borrado_forzado[rc.type]
+	rc.change.after[atributo] == true
+	rc.change.after.tags_all.Env == "prod"
+	msg := sprintf("%s tiene %s = true en prod: el borrado con contenido solo se permite en dev", [rc.address, atributo])
+}

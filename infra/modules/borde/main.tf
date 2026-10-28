@@ -18,6 +18,7 @@ locals {
 # aws-s3-enable-bucket-logging: Sin logs de acceso: CloudFront es el único lector y el contenido es público.
 #tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "web" {
+  force_destroy = var.forzar_borrado
   #checkov:skip=CKV_AWS_18:Sin logs de acceso: CloudFront es el unico lector y sirve contenido publico
   #checkov:skip=CKV_AWS_144:Sin replicacion: el build se regenera desde el repositorio
   #checkov:skip=CKV_AWS_145:SSE-S3 basta: son archivos estaticos publicos; con KMS el OAC exigiria permisos extra en la clave
