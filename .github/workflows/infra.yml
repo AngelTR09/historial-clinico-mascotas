@@ -152,3 +152,4 @@ jobs:
           infracost comment github --path infracost.json \
             --repo "$GITHUB_REPOSITORY" --pull-request "${{ github.event.pull_request.number }}" \
             --github-token "${{ github.token }}" --behavior update
+# prueba del job plan
