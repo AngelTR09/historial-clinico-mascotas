@@ -6,7 +6,8 @@ import { hmacWithPepper } from "../../crypto/symmetric.js";
 import { verificarContrasena, verificarContrasenaFicticia } from "../../crypto/password.js";
 import { db } from "../../db/client.js";
 import { duenos, verificacionesCorreo, veterinarios } from "../../db/schema.js";
-import { ErrorNoAutorizado, ErrorProhibido } from "../../domain/errors.js";
+import { esViolacionDeUnicidad } from "../../domain/db-errors.js";
+import { ErrorConflicto, ErrorNoAutorizado, ErrorProhibido } from "../../domain/errors.js";
 const INTENTOS_FALLIDOS_PARA_BLOQUEAR = 5;
 const MINUTOS_BLOQUEO = 15;
 const SEGUNDOS_ENTRE_CODIGOS = 60;
@@ -45,8 +46,9 @@ function iguales(a, b) {
 /**
  * Genera un código de 6 dígitos de un solo uso, invalida los anteriores y lo envía por `NotifyPort`.
  * Solo se guarda su HMAC. Un fallo al enviar no tumba el registro: la persona puede pedir otro.
+ * En el reclamo de una cuenta, `contrasenaPendienteHash` viaja con el código hasta que se verifica.
  */
-export async function emitirCodigoVerificacion(ports, rol, cuenta) {
+export async function emitirCodigoVerificacion(ports, rol, cuenta, { contrasenaPendienteHash = null } = {}) {
     const { columnaTitular } = CUENTAS[rol];
     await db
         .update(verificacionesCorreo)
@@ -56,6 +58,7 @@ export async function emitirCodigoVerificacion(ports, rol, cuenta) {
     await db.insert(verificacionesCorreo).values({
         [columnaTitular]: cuenta.id,
         hashCodigo: hashDelCodigo(cuenta.id, codigo),
+        contrasenaPendienteHash,
         venceEn: new Date(Date.now() + MINUTOS_VIGENCIA_CODIGO * 60_000),
     });
     try {
@@ -66,30 +69,70 @@ export async function emitirCodigoVerificacion(ports, rol, cuenta) {
     }
 }
 /**
- * Activa la cuenta con el código que llegó al correo y entrega la sesión. Un código vale 15 minutos
- * y admite 5 intentos; agotados, hay que pedir otro. Todos los fallos responden lo mismo.
+ * Un reclamo pendiente: cuenta de dueño creada por un veterinario (sin contraseña) con un código vigente que
+ * lleva la contraseña elegida al registrarse. Se busca por la verificación y no solo por el correo, porque
+ * un mismo correo puede estar en más de una cuenta sin contraseña.
  */
-export async function verificarCorreo(ports, { rol, correo, codigo }) {
-    const cuenta = await buscarCuenta(rol, correo);
-    if (!cuenta) {
-        throw new ErrorNoAutorizado(MENSAJE_CODIGO);
-    }
-    const { tabla, columnaTitular } = CUENTAS[rol];
-    const [vigente] = await db
-        .select()
+async function buscarReclamoPendiente(correo) {
+    const [fila] = await db
+        .select({ cuenta: duenos, verificacion: verificacionesCorreo })
         .from(verificacionesCorreo)
-        .where(and(eq(verificacionesCorreo[columnaTitular], cuenta.id), isNull(verificacionesCorreo.consumidoEn), gt(verificacionesCorreo.venceEn, new Date()), lt(verificacionesCorreo.intentos, INTENTOS_MAXIMOS_CODIGO)))
+        .innerJoin(duenos, eq(verificacionesCorreo.idDueno, duenos.id))
+        .where(and(sql `lower(${duenos.correo}) = ${correo.toLowerCase()}`, isNull(duenos.contrasenaHash), isNull(verificacionesCorreo.consumidoEn), gt(verificacionesCorreo.venceEn, new Date()), lt(verificacionesCorreo.intentos, INTENTOS_MAXIMOS_CODIGO), sql `${verificacionesCorreo.contrasenaPendienteHash} IS NOT NULL`))
         .orderBy(desc(verificacionesCorreo.creadoEn))
         .limit(1);
-    if (!vigente) {
+    return fila ?? null;
+}
+/**
+ * Activa la cuenta con el código que llegó al correo y entrega la sesión. Un código vale 15 minutos
+ * y admite 5 intentos; agotados, hay que pedir otro. Todos los fallos responden lo mismo.
+ * En el reclamo de una cuenta creada por un veterinario hace falta además repetir la contraseña elegida al
+ * registrarse: el código llega al buzón del dueño, pero solo la contraseña prueba que quien lo teclea es quien
+ * hizo ese registro y no otra persona que lo inició con el mismo documento y correo.
+ */
+export async function verificarCorreo(ports, { rol, correo, codigo, contrasena }) {
+    const { tabla, columnaTitular } = CUENTAS[rol];
+    let cuenta = await buscarCuenta(rol, correo);
+    let vigente = null;
+    if (cuenta) {
+        [vigente] = await db
+            .select()
+            .from(verificacionesCorreo)
+            .where(and(eq(verificacionesCorreo[columnaTitular], cuenta.id), isNull(verificacionesCorreo.consumidoEn), gt(verificacionesCorreo.venceEn, new Date()), lt(verificacionesCorreo.intentos, INTENTOS_MAXIMOS_CODIGO)))
+            .orderBy(desc(verificacionesCorreo.creadoEn))
+            .limit(1);
+    }
+    else if (rol === "dueno") {
+        const reclamo = await buscarReclamoPendiente(correo);
+        cuenta = reclamo?.cuenta ?? null;
+        vigente = reclamo?.verificacion ?? null;
+    }
+    if (!cuenta || !vigente) {
         throw new ErrorNoAutorizado(MENSAJE_CODIGO);
     }
-    if (!iguales(vigente.hashCodigo, hashDelCodigo(cuenta.id, codigo))) {
+    const contrasenaCorrecta = !vigente.contrasenaPendienteHash || (typeof contrasena === "string" && (await verificarContrasena(contrasena, vigente.contrasenaPendienteHash)));
+    if (!iguales(vigente.hashCodigo, hashDelCodigo(cuenta.id, codigo)) || !contrasenaCorrecta) {
         await db.update(verificacionesCorreo).set({ intentos: sql `${verificacionesCorreo.intentos} + 1` }).where(eq(verificacionesCorreo.id, vigente.id));
         throw new ErrorNoAutorizado(MENSAJE_CODIGO);
     }
-    await db.update(verificacionesCorreo).set({ consumidoEn: new Date() }).where(eq(verificacionesCorreo.id, vigente.id));
-    await db.update(tabla).set({ correoVerificadoEn: cuenta.correoVerificadoEn ?? new Date(), intentosFallidos: 0, bloqueadoHasta: null }).where(eq(tabla.id, cuenta.id));
+    const cambios = { correoVerificadoEn: cuenta.correoVerificadoEn ?? new Date(), intentosFallidos: 0, bloqueadoHasta: null };
+    if (vigente.contrasenaPendienteHash) {
+        cambios.contrasenaHash = vigente.contrasenaPendienteHash;
+        cambios.fechaConsentimiento = new Date();
+    }
+    try {
+        await db.transaction(async (tx) => {
+            await tx.update(verificacionesCorreo).set({ consumidoEn: new Date() }).where(eq(verificacionesCorreo.id, vigente.id));
+            await tx.update(tabla).set(cambios).where(eq(tabla.id, cuenta.id));
+        });
+    }
+    catch (error) {
+        // Otra cuenta con contraseña tomó ese correo mientras tanto.
+        if (esViolacionDeUnicidad(error)) {
+            throw new ErrorConflicto("Ya existe una cuenta con este correo");
+        }
+        throw error;
+    }
     return { token: await CUENTAS[rol].emitirToken(ports, cuenta.id) };
 }
 /**
@@ -97,7 +140,14 @@ export async function verificarCorreo(ports, { rol, correo, codigo }) {
  * minuto siguiente a un envío, simplemente no se envía otro.
  */
 export async function reenviarCodigo(ports, { rol, correo }) {
-    const cuenta = await buscarCuenta(rol, correo);
+    let cuenta = await buscarCuenta(rol, correo);
+    let pendiente = null;
+    if (!cuenta && rol === "dueno") {
+        // Reclamo a medias: el código nuevo conserva la contraseña pendiente, que no se puede volver a pedir.
+        const reclamo = await buscarReclamoPendiente(correo);
+        cuenta = reclamo?.cuenta ?? null;
+        pendiente = reclamo?.verificacion.contrasenaPendienteHash ?? null;
+    }
     if (!cuenta || cuenta.correoVerificadoEn) {
         return;
     }
@@ -111,7 +161,7 @@ export async function reenviarCodigo(ports, { rol, correo }) {
     if (ultimo && Date.now() - ultimo.creadoEn.getTime() < SEGUNDOS_ENTRE_CODIGOS * 1000) {
         return;
     }
-    await emitirCodigoVerificacion(ports, rol, cuenta);
+    await emitirCodigoVerificacion(ports, rol, cuenta, { contrasenaPendienteHash: pendiente });
 }
 /**
  * RNF 03 y 06: sin contraseña correcta no hay sesión. Correo inexistente y contraseña errónea dan el

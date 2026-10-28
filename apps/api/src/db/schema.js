@@ -137,6 +137,10 @@ export const verificacionesCorreo = pgTable("email_verifications", {
     idDueno: uuid("owner_id").references(() => duenos.id),
     idVeterinario: uuid("vet_id").references(() => veterinarios.id),
     hashCodigo: text("code_hash").notNull(),
+    // Reclamo de una cuenta creada por un veterinario: la contraseña elegida espera aquí y solo pasa a
+    // `owners.password_hash` cuando se verifica el código Y se repite esa contraseña. Hasta entonces la cuenta no
+    // tiene contraseña, así que nadie que no tenga el buzón puede dejarla bloqueada ni activarla.
+    contrasenaPendienteHash: text("pending_password_hash"),
     venceEn: timestamp("expires_at", { withTimezone: true }).notNull(),
     intentos: integer("attempts").notNull().default(0),
     consumidoEn: timestamp("consumed_at", { withTimezone: true }),

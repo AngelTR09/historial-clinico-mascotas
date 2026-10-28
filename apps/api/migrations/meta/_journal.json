@@ -85,6 +85,13 @@
       "when": 1792619930952,
       "tag": "0011_una_transferencia_pendiente",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793172454743,
+      "tag": "0012_reclamo_contrasena_pendiente",
+      "breakpoints": true
     }
   ]
 }

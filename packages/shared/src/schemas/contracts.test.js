@@ -94,6 +94,13 @@ describe("esquemaContrasena: la misma política que Cognito (RNF 03)", () => {
 });
 
 describe("esquemas de sesión", () => {
+    it("la contraseña es opcional al verificar el correo (solo el reclamo de cuenta la usa)", () => {
+        const base = { rol: "dueno", correo: "ana@example.com", codigo: "123456" };
+        expect(esquemaVerificacionCorreo.safeParse(base).success).toBe(true);
+        expect(esquemaVerificacionCorreo.safeParse({ ...base, contrasena: "Clave-Segura-2026!" }).success).toBe(true);
+        expect(esquemaVerificacionCorreo.safeParse({ ...base, contrasena: "" }).success).toBe(false);
+    });
+
     it("el código de verificación son exactamente 6 dígitos", () => {
         const base = { rol: "dueno", correo: "ana@example.com" };
         expect(esquemaVerificacionCorreo.safeParse({ ...base, codigo: "123456" }).success).toBe(true);

@@ -66,16 +66,17 @@ export async function registrarDueno(ports, input) {
     return { idDueno: insertado.id, requiereVerificacion: true };
 }
 
-/** Fija la contraseña de una cuenta creada por un veterinario y emite el código para activarla. */
+/**
+ * Reclama una cuenta creada por un veterinario. La contraseña elegida NO se guarda en la cuenta: queda como
+ * pendiente junto al código y solo se aplica cuando se verifica el código y se repite esa contraseña
+ * (`verificarCorreo`). Así quien conozca el documento y el correo no puede dejar la cuenta bloqueada para el
+ * dueño real ni activarla con una contraseña ajena. Un reclamo nuevo reemplaza al anterior.
+ */
 async function reclamarCuentaSinActivar(ports, existente, input) {
     const [correoEnUso] = await db.select({ id: duenos.id }).from(duenos).where(and(sql `lower(${duenos.correo}) = ${input.correo.toLowerCase()}`, sql `${duenos.contrasenaHash} IS NOT NULL`)).limit(1);
     if (correoEnUso) {
         throw new ErrorConflicto("Ya existe una cuenta con este correo");
     }
-    await db
-        .update(duenos)
-        .set({ contrasenaHash: await hashContrasena(input.contrasena), fechaConsentimiento: new Date() })
-        .where(eq(duenos.id, existente.id));
-    await emitirCodigoVerificacion(ports, "dueno", { id: existente.id, correo: existente.correo });
+    await emitirCodigoVerificacion(ports, "dueno", { id: existente.id, correo: existente.correo }, { contrasenaPendienteHash: await hashContrasena(input.contrasena) });
     return { idDueno: existente.id, requiereVerificacion: true };
 }
