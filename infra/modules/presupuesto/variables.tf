@@ -32,6 +32,17 @@ variable "umbral_anomalia_usd" {
   default     = 5
 }
 
+variable "arn_monitor_anomalias_existente" {
+  type        = string
+  description = "ARN del monitor de anomalías de servicios que la cuenta ya tiene (AWS crea uno por defecto y solo admite uno). Vacío: el módulo crea el suyo."
+  default     = ""
+
+  validation {
+    condition     = var.arn_monitor_anomalias_existente == "" || can(regex("^arn:aws:ce::[0-9]{12}:anomalymonitor/[0-9a-f-]+$", var.arn_monitor_anomalias_existente))
+    error_message = "Debe ser el ARN de un monitor (arn:aws:ce::<cuenta>:anomalymonitor/<id>) o quedar vacío."
+  }
+}
+
 variable "etiquetas_comunes" {
   type        = map(string)
   description = "Etiquetas obligatorias del proyecto (Project, Env, Owner)."

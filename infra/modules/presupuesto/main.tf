@@ -78,7 +78,12 @@ resource "aws_budgets_budget" "creditos" {
   tags = var.etiquetas_comunes
 }
 
+# AWS crea por su cuenta un monitor de servicios por defecto y cada cuenta admite uno solo de ese tipo
+# (CreateAnomalyMonitor responde "Limit exceeded"). Si la cuenta ya lo tiene, se pasa su ARN en
+# arn_monitor_anomalias_existente y aquí no se crea otro.
 resource "aws_ce_anomaly_monitor" "servicios" {
+  count = var.arn_monitor_anomalias_existente == "" ? 1 : 0
+
   name              = "${var.nombre_proyecto}-servicios"
   monitor_type      = "DIMENSIONAL"
   monitor_dimension = "SERVICE"
@@ -86,10 +91,14 @@ resource "aws_ce_anomaly_monitor" "servicios" {
   tags = var.etiquetas_comunes
 }
 
+locals {
+  arn_monitor_anomalias = var.arn_monitor_anomalias_existente != "" ? var.arn_monitor_anomalias_existente : one(aws_ce_anomaly_monitor.servicios[*].arn)
+}
+
 resource "aws_ce_anomaly_subscription" "diaria" {
   name             = "${var.nombre_proyecto}-anomalias"
   frequency        = "DAILY"
-  monitor_arn_list = [aws_ce_anomaly_monitor.servicios.arn]
+  monitor_arn_list = [local.arn_monitor_anomalias]
 
   dynamic "subscriber" {
     for_each = toset(var.correos_alerta)

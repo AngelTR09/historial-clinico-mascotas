@@ -26,6 +26,12 @@ variable "repositorio_github" {
   default     = "AngelTR09/historial-clinico-mascotas"
 }
 
+variable "arn_monitor_anomalias_existente" {
+  type        = string
+  description = "ARN del monitor de anomalías de costo que la cuenta ya tiene (AWS crea uno por defecto). Se obtiene con: aws ce get-anomaly-monitors. Vacío: se crea uno."
+  default     = ""
+}
+
 variable "crear_proveedor_oidc" {
   type        = bool
   description = "Crear el proveedor OIDC de GitHub; false si la cuenta ya tiene uno."
