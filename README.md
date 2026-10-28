@@ -97,7 +97,7 @@ docker compose down -v             # apagar y BORRAR los datos
 
 ## Levantarlo sin Docker
 
-Requisitos: Node 20.19 o superior, pnpm 9.15.4 (`corepack enable`) y PostgreSQL 17 en local.
+Requisitos: Node 22.22 o superior (las pruebas de la web usan jsdom 30; las imágenes Docker de la API siguen en Node 20), pnpm 9.15.4 (`corepack enable`) y PostgreSQL 17 en local.
 
 ```bash
 pnpm install
@@ -135,7 +135,40 @@ pnpm verify          # lockfile, lint, pruebas, build y auditoría de dependenci
 └── docker-compose.yml  db + migrate + seed + api + web
 ```
 
-El despliegue a AWS todavía no se ejecuta: el Terraform de `infra/` está escrito y validado, pero no aplicado.
+## Desplegar a AWS
+
+Terraform (`infra/`) solo crea la infraestructura. El despliegue completo lo hace el workflow
+`.github/workflows/deploy.yml`, que después del `terraform apply` carga los secretos, construye y publica la
+imagen de la API, registra la tarea de ECS, corre las migraciones, actualiza las Lambdas, publica la web y
+termina con una prueba de humo. Los scripts están en `scripts/despliegue/`.
+
+**Una sola vez** (cuenta nueva): crear el bootstrap (bucket de estado, claves, presupuestos y roles de GitHub) y
+cargar sus salidas como variables del repositorio (`AWS_ROLE_ARN`, `AWS_PLAN_ROLE_ARN`, `TF_STATE_BUCKET`,
+`AWS_TFSTATE_KMS_KEY`, `AWS_ACCOUNT_ID`, `AWS_REGION`, `CORREO_ALERTAS`, `CORREO_REMITENTE`), con el
+environment `dev` protegido en GitHub.
+
+```bash
+cd infra/envs/bootstrap
+cp terraform.example.tfvars terraform.tfvars   # completa tus valores
+terraform init && terraform apply
+```
+
+**Cada despliegue:** integrar `main` en `development`; el workflow espera la aprobación del environment `dev`.
+
+```bash
+git checkout development && git merge main && git push origin development
+```
+
+Aprueba el run en la pestaña *Actions*. Al terminar, la URL de la web (CloudFront) aparece en el resumen del run.
+
+**Dos pasos manuales por correo** (SES en modo sandbox): abrir el enlace de verificación que llega al correo
+remitente y confirmar la suscripción SNS del correo de alertas.
+
+**Apagar** (para no gastar créditos), desde `infra/envs/dev` con un `backend.hcl` copiado de `backend.example.hcl`:
+
+```bash
+terraform init -backend-config=backend.hcl && terraform destroy
+```
 
 ## Documentación
 
@@ -158,3 +191,4 @@ El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 - **Web** (`apps/web`): aplicación React con panel del dueño, del veterinario y ficha pública.
 - **Docker**: imágenes de la API y la web y `docker-compose.yml` para levantar todo en local.
 - **Terraform de datos y cómputo**: bases, colas, identidad, cómputo, borde, Lambdas, observabilidad y respaldo; políticas OPA.
+- **Despliegue a AWS**: workflow que aplica Terraform y publica la aplicación (secretos, imagen, migraciones, Lambdas y web).
