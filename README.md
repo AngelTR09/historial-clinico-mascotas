@@ -97,7 +97,7 @@ docker compose down -v             # apagar y BORRAR los datos
 
 ## Levantarlo sin Docker
 
-Requisitos: Node 20.19 o superior, pnpm 9.15.4 (`corepack enable`) y PostgreSQL 17 en local.
+Requisitos: Node 22.22 o superior (las pruebas de la web usan jsdom 30; las imágenes Docker de la API siguen en Node 20), pnpm 9.15.4 (`corepack enable`) y PostgreSQL 17 en local.
 
 ```bash
 pnpm install
