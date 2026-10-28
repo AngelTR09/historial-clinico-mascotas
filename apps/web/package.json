@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "license": "UNLICENSED",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

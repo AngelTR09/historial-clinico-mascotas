@@ -1,6 +1,7 @@
 # Contexto de build: la raíz del monorepo (necesario para resolver el
 # workspace de pnpm y el paquete @hcm/shared).
-FROM node:20-alpine AS build
+# Node 22: las pruebas de la web usan jsdom 30, que exige Node >= 22.22, y Node 20 ya no tiene soporte.
+FROM node:22-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
