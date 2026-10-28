@@ -48,10 +48,7 @@ backend.hcl
 ansible/inventory/hosts.local
 ansible/vault_pass.txt
 
-# ---- documentación del proyecto Code ----
-.documentación del proyecto/
-.documentación del proyecto/settings.local.json
-documentación del proyecto.local.md
+# ---- Configuración local de herramientas (nunca se sube) ----
 .mcp.json
 *.local.json
 
