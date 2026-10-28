@@ -43,3 +43,4 @@ El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 - **Terraform base** (`infra/`): bootstrap, presupuesto, OIDC de GitHub, red y seguridad. Ver `PLAN-MIGRACION-AWS.md`.
 - **Mascotas y ficha pública**: alta de mascota, camadas y consulta pública por QR sin datos personales.
 - **Historial clínico**: eventos de salud, registro directo del veterinario y evidencias adjuntas.
+- **Transferencias y recordatorios**: transferencia atómica, recordatorios de vacunas, workers y la app HTTP completa.
