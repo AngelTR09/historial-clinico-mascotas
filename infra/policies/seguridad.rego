@@ -59,3 +59,13 @@ deny contains msg if {
 	rc.change.after.tags_all.Env == "prod"
 	msg := sprintf("%s tiene %s = true en prod: el borrado con contenido solo se permite en dev", [rc.address, atributo])
 }
+
+# En prod la base conserva al menos 7 días de respaldo: 1 día solo se admite en dev, por el límite del plan gratuito.
+deny contains msg if {
+	some rc in input.resource_changes
+	crea(rc)
+	rc.type == "aws_db_instance"
+	rc.change.after.tags_all.Env == "prod"
+	rc.change.after.backup_retention_period < 7
+	msg := sprintf("%s tiene %v día(s) de respaldo en prod: se exigen al menos 7", [rc.address, rc.change.after.backup_retention_period])
+}

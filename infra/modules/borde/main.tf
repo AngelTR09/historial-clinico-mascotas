@@ -7,12 +7,30 @@
 
 data "aws_caller_identity" "actual" {}
 
+# Políticas gestionadas por AWS, buscadas por nombre: un nombre inexistente falla en el plan. Con
+# identificadores escritos a mano, uno mal copiado solo fallaba al crear la distribución (CreateDistribution:
+# NoSuchCachePolicy) y dejaba el apply a medias.
+data "aws_cloudfront_cache_policy" "optimizada" {
+  name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_cache_policy" "deshabilitada" {
+  name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_origin_request_policy" "todo_menos_host" {
+  name = "Managed-AllViewerExceptHostHeader"
+}
+
+data "aws_cloudfront_response_headers_policy" "seguras" {
+  name = "Managed-SecurityHeadersPolicy"
+}
+
 locals {
-  # Políticas gestionadas por AWS (identificadores fijos y documentados).
-  cache_optimizada       = "658327ea-f89d-4fab-a63d-7e88639e58f6"
-  cache_deshabilitada    = "4135ea2d-6df9-4a1b-9a2b-0f6e1f6ab4fa"
-  origen_todo_menos_host = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
-  cabeceras_seguras      = "67f7725c-6f97-4210-82d7-5512b31e9d03"
+  cache_optimizada       = data.aws_cloudfront_cache_policy.optimizada.id
+  cache_deshabilitada    = data.aws_cloudfront_cache_policy.deshabilitada.id
+  origen_todo_menos_host = data.aws_cloudfront_origin_request_policy.todo_menos_host.id
+  cabeceras_seguras      = data.aws_cloudfront_response_headers_policy.seguras.id
 }
 
 # aws-s3-enable-bucket-logging: Sin logs de acceso: CloudFront es el único lector y el contenido es público.

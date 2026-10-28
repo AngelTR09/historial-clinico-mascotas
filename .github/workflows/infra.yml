@@ -124,7 +124,7 @@ jobs:
           terraform init -input=false \
             -backend-config="bucket=${{ vars.AWS_TFSTATE_BUCKET }}" \
             -backend-config="key=${{ matrix.entorno }}/terraform.tfstate" \
-            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="region=${{ vars.AWS_TFSTATE_REGION || 'us-east-1' }}" \
             -backend-config="dynamodb_table=${{ vars.AWS_TFLOCK_TABLE }}" \
             -backend-config="use_lockfile=true" \
             -backend-config="kms_key_id=${{ vars.AWS_TFSTATE_KMS_KEY }}" \
@@ -152,4 +152,3 @@ jobs:
           infracost comment github --path infracost.json \
             --repo "$GITHUB_REPOSITORY" --pull-request "${{ github.event.pull_request.number }}" \
             --github-token "${{ github.token }}" --behavior update
-# prueba del job plan
