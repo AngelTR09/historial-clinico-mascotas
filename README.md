@@ -38,3 +38,4 @@ El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 - **Contrato compartido** (`packages/shared`): esquemas zod y código público con dígito verificador.
 - **Base de datos** (`apps/api`): esquema Drizzle, migraciones con reversión, cifrado de columna, auditoría y tokens.
 - **Puertos y adaptadores locales** (`apps/api/src/ports`, `adapters/local`): todo servicio externo detrás de una interfaz.
+- **Cuentas y login**: dueños y veterinarios, inicio de sesión con código de 6 dígitos por correo.
