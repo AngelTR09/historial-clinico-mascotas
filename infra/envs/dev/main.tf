@@ -33,12 +33,15 @@ module "seguridad" {
 module "datos" {
   source = "../../modules/datos"
 
-  forzar_borrado            = !local.proteger
-  etiquetas_comunes         = local.etiquetas
-  arn_clave_datos           = module.seguridad.arn_clave_datos
-  ids_subredes_privadas     = module.red.ids_subredes_privadas
-  id_sg_db                  = module.red.id_sg_db
-  multi_az                  = var.multi_az
+  forzar_borrado        = !local.proteger
+  etiquetas_comunes     = local.etiquetas
+  arn_clave_datos       = module.seguridad.arn_clave_datos
+  ids_subredes_privadas = module.red.ids_subredes_privadas
+  id_sg_db              = module.red.id_sg_db
+  multi_az              = var.multi_az
+  # El plan gratuito de AWS rechaza más de 1 día de respaldos (FreeTierRestrictionError). Con 1 día la
+  # recuperación a un punto en el tiempo sigue activa (RNF 09); al pasar a un plan de pago, subirlo a 7.
+  dias_retencion_respaldos  = 1
   proteccion_contra_borrado = local.proteger
   omitir_snapshot_final     = !local.proteger
 }

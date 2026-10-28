@@ -4,13 +4,19 @@
 
 data "aws_region" "actual" {}
 
+locals {
+  # Por defecto las dos primeras zonas de la región (a y b): la región cambia (us-east-1, us-east-2) y las
+  # zonas escritas a mano rompían la red al cambiarla.
+  zonas = length(var.zonas) > 0 ? var.zonas : ["${data.aws_region.actual.name}a", "${data.aws_region.actual.name}b"]
+}
+
 data "aws_ec2_managed_prefix_list" "cloudfront" {
   name = "com.amazonaws.global.cloudfront.origin-facing"
 }
 
 locals {
-  cidr_publicas = [for i, _ in var.zonas : cidrsubnet(var.cidr_vpc, 8, i)]
-  cidr_privadas = [for i, _ in var.zonas : cidrsubnet(var.cidr_vpc, 8, i + 10)]
+  cidr_publicas = [for i, _ in local.zonas : cidrsubnet(var.cidr_vpc, 8, i)]
+  cidr_privadas = [for i, _ in local.zonas : cidrsubnet(var.cidr_vpc, 8, i + 10)]
 }
 
 # aws-ec2-require-vpc-flow-logs-for-all-vpcs: Flow logs diferidos: no los exige ningún RNF del PDF y suman costo de ingesta (documentación del proyecto §18).
@@ -38,10 +44,10 @@ resource "aws_internet_gateway" "principal" {
 }
 
 resource "aws_subnet" "publica" {
-  count = length(var.zonas)
+  count = length(local.zonas)
 
   vpc_id                  = aws_vpc.principal.id
-  availability_zone       = var.zonas[count.index]
+  availability_zone       = local.zonas[count.index]
   cidr_block              = local.cidr_publicas[count.index]
   map_public_ip_on_launch = false
 
@@ -49,10 +55,10 @@ resource "aws_subnet" "publica" {
 }
 
 resource "aws_subnet" "privada" {
-  count = length(var.zonas)
+  count = length(local.zonas)
 
   vpc_id            = aws_vpc.principal.id
-  availability_zone = var.zonas[count.index]
+  availability_zone = local.zonas[count.index]
   cidr_block        = local.cidr_privadas[count.index]
 
   tags = merge(var.etiquetas_comunes, { Name = "${var.nombre_proyecto}-privada-${count.index}" })
@@ -76,14 +82,14 @@ resource "aws_route_table" "privada" {
 }
 
 resource "aws_route_table_association" "publica" {
-  count = length(var.zonas)
+  count = length(local.zonas)
 
   subnet_id      = aws_subnet.publica[count.index].id
   route_table_id = aws_route_table.publica.id
 }
 
 resource "aws_route_table_association" "privada" {
-  count = length(var.zonas)
+  count = length(local.zonas)
 
   subnet_id      = aws_subnet.privada[count.index].id
   route_table_id = aws_route_table.privada.id

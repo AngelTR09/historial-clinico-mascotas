@@ -1,7 +1,7 @@
 variable "region" {
   type        = string
-  description = "Región de AWS (el diagrama de arquitectura usa us-east-1)."
-  default     = "us-east-1"
+  description = "Región de AWS de la carga de trabajo (us-east-2, definida por el responsable del proyecto). El estado de Terraform sigue en el bucket de us-east-1 del bootstrap: la región del backend se configura aparte, en backend.hcl."
+  default     = "us-east-2"
 }
 
 variable "owner" {

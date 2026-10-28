@@ -47,3 +47,19 @@ run "rechaza_una_sola_zona" {
 
   expect_failures = [var.zonas]
 }
+
+run "las_zonas_por_defecto_siguen_a_la_region" {
+  command = plan
+
+  override_data {
+    target = data.aws_region.actual
+    values = {
+      name = "us-east-2"
+    }
+  }
+
+  assert {
+    condition     = [for s in aws_subnet.publica : s.availability_zone] == ["us-east-2a", "us-east-2b"]
+    error_message = "Sin zonas explícitas se usan <región>a y <región>b: nunca zonas de otra región."
+  }
+}

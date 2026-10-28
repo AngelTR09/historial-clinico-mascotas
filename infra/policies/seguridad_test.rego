@@ -70,3 +70,15 @@ test_borrado_forzado_en_dev_pasa if {
 test_ecr_con_borrado_forzado_en_prod_se_deniega if {
 	count(seguridad.deny) == 1 with input as plan_con("aws_ecr_repository", "aws_ecr_repository.x", {"force_delete": true, "tags_all": {"Env": "prod"}})
 }
+
+test_respaldo_de_un_dia_en_prod_se_deniega if {
+	count(seguridad.deny) == 1 with input as plan_con("aws_db_instance", "aws_db_instance.x", {"storage_encrypted": true, "backup_retention_period": 1, "tags_all": {"Env": "prod"}})
+}
+
+test_respaldo_de_un_dia_en_dev_pasa if {
+	count(seguridad.deny) == 0 with input as plan_con("aws_db_instance", "aws_db_instance.x", {"storage_encrypted": true, "backup_retention_period": 1, "tags_all": {"Env": "dev"}})
+}
+
+test_respaldo_de_siete_dias_en_prod_pasa if {
+	count(seguridad.deny) == 0 with input as plan_con("aws_db_instance", "aws_db_instance.x", {"storage_encrypted": true, "backup_retention_period": 7, "tags_all": {"Env": "prod"}})
+}

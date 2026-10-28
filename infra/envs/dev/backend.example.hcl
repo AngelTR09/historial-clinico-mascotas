@@ -1,6 +1,7 @@
 # Copiar a backend.hcl (ignorado por git) con los outputs de envs/bootstrap.
 bucket     = "hcm-tfstate-<id-de-cuenta>"
 key        = "dev/terraform.tfstate"
+# Región del BUCKET de estado (la del bootstrap), no la de la carga de trabajo.
 region     = "us-east-1"
 encrypt    = true
 kms_key_id = "<arn_clave_estado de envs/bootstrap>"

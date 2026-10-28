@@ -18,11 +18,11 @@ variable "cidr_vpc" {
 
 variable "zonas" {
   type        = list(string)
-  description = "Zonas de disponibilidad. El PDF exige dos (RNF 08 y 11)."
-  default     = ["us-east-1a", "us-east-1b"]
+  description = "Zonas de disponibilidad. Vacío: <región>a y <región>b. El PDF exige dos (RNF 08 y 11)."
+  default     = []
 
   validation {
-    condition     = length(var.zonas) >= 2
+    condition     = length(var.zonas) == 0 || length(var.zonas) >= 2
     error_message = "Se necesitan al menos dos zonas de disponibilidad (RNF 08 y 11)."
   }
 }

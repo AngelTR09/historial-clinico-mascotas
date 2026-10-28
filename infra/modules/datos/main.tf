@@ -28,7 +28,9 @@ resource "aws_db_parameter_group" "postgres" {
 
 # aws-rds-enable-performance-insights: Las métricas de CloudWatch alcanzan para los RNF y la clase micro no aprovecha Performance Insights.
 # aws-rds-enable-deletion-protection: Se controla con proteccion_contra_borrado: true en prod y false en dev, para poder hacer destroy fuera de las sesiones de laboratorio.
+# aws-rds-specify-backup-retention: El plan gratuito de AWS limita los respaldos a 1 día (FreeTierRestrictionError). Solo se usa en dev; una política OPA exige al menos 7 días en prod.
 #tfsec:ignore:aws-rds-enable-performance-insights
+#tfsec:ignore:aws-rds-specify-backup-retention
 resource "aws_db_instance" "principal" {
   #checkov:skip=CKV_AWS_293:deletion_protection lo controla proteccion_contra_borrado: true en prod, false en dev para poder hacer destroy
   #checkov:skip=CKV_AWS_353:Sin Performance Insights: las metricas de CloudWatch alcanzan para los RNF y la clase micro no los aprovecha
