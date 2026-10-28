@@ -1,0 +1,95 @@
+name: Deploy
+
+# Despliegue del entorno dev. Corre SOLO con un push a la rama development (la rama de despliegue protegida).
+# El job usa el GitHub Environment `dev`, que limita la rama de despliegue y es el único `sub` que acepta el
+# rol de AWS: ningún pull request ni otra rama puede asumirlo. Sin claves de larga vida: OIDC.
+on:
+  push:
+    branches: [development]
+
+# Los permisos mínimos: leer el código y pedir el token OIDC.
+permissions:
+  contents: read
+  id-token: write
+
+# Un apply no se cancela a medias: el siguiente espera.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    name: Desplegar dev (terraform apply)
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 60
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_ids_cuentas_permitidas: ${{ vars.AWS_ACCOUNT_ID != '' && format('["{0}"]', vars.AWS_ACCOUNT_ID) || '[]' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Terraform lee el .zip de cada Lambda: se construyen desde el código.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Empaquetar las Lambdas
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm trabajadores:empaquetar
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: terraform init
+        working-directory: infra/envs/dev
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=lab09/dev/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="kms_key_id=${{ vars.AWS_TFSTATE_KMS_KEY }}" \
+            -backend-config="encrypt=true"
+
+      - name: terraform validate
+        working-directory: infra/envs/dev
+        run: terraform validate
+
+      - name: terraform plan
+        working-directory: infra/envs/dev
+        run: |
+          terraform plan -input=false -lock-timeout=60s \
+            -var="owner=${{ github.repository_owner }}" \
+            -var='correos_alerta=["${{ vars.CORREO_ALERTAS }}"]' \
+            -var="correo_remitente=${{ vars.CORREO_REMITENTE }}" \
+            -out=dev.tfplan
+          terraform show -json dev.tfplan > dev.tfplan.json
+
+      # Las políticas OPA corren sobre el plan antes de aplicar: etiquetas, servicios prohibidos y cifrado.
+      - name: Políticas OPA sobre el plan
+        run: |
+          docker run --rm -v "$PWD:/proyecto" -w /proyecto openpolicyagent/conftest:v0.56.0 \
+            test --all-namespaces --policy infra/policies infra/envs/dev/dev.tfplan.json
+
+      - name: terraform apply
+        working-directory: infra/envs/dev
+        run: terraform apply -input=false dev.tfplan
+
+      - name: Salidas del despliegue
+        working-directory: infra/envs/dev
+        run: terraform output

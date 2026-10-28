@@ -55,8 +55,8 @@ test_admin_fuera_de_oidc_se_deniega if {
 	count(seguridad.deny) == 1 with input as plan_con("aws_iam_role_policy_attachment", "aws_iam_role_policy_attachment.x", {"policy_arn": "arn:aws:iam::aws:policy/AdministratorAccess"})
 }
 
-test_admin_en_rol_apply_pasa if {
-	count(seguridad.deny) == 0 with input as plan_con("aws_iam_role_policy_attachment", "module.github_oidc.aws_iam_role_policy_attachment.apply", {"policy_arn": "arn:aws:iam::aws:policy/AdministratorAccess"})
+test_admin_tampoco_en_el_rol_de_despliegue_se_deniega if {
+	count(seguridad.deny) == 1 with input as plan_con("aws_iam_role_policy_attachment", "module.github_oidc.aws_iam_role_policy_attachment.despliegue", {"policy_arn": "arn:aws:iam::aws:policy/AdministratorAccess"})
 }
 
 test_borrado_forzado_en_prod_se_deniega if {

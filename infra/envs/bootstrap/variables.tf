@@ -1,7 +1,7 @@
 variable "region" {
   type        = string
-  description = "Región de AWS (el diagrama de arquitectura usa us-east-1)."
-  default     = "us-east-1"
+  description = "Región de AWS de TODO el laboratorio, incluido el bucket de estado (us-east-2, definida por el responsable del proyecto)."
+  default     = "us-east-2"
 }
 
 variable "nombre_proyecto" {
@@ -53,4 +53,10 @@ variable "ids_cuentas_permitidas" {
     condition     = alltrue([for id in var.ids_cuentas_permitidas : can(regex("^[0-9]{12}$", id))])
     error_message = "Cada cuenta debe ser un identificador de 12 dígitos."
   }
+}
+
+variable "prefijo_estado" {
+  type        = string
+  description = "Prefijo del estado del entorno dev dentro del bucket: la clave del estado es <prefijo>/terraform.tfstate y el rol de despliegue solo puede tocar ese prefijo."
+  default     = "lab09/dev"
 }

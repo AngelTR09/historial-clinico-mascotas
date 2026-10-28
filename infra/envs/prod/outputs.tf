@@ -1,4 +1,4 @@
-# Lo que necesitan los workflows de despliegue (Pendiente_Integrar/github-actions/GITHUB-ACTIONS.md) y las personas que
+# Lo que necesitan los workflows de despliegue (.github/workflows/deploy.yml) y las personas que
 # operan el entorno. Ninguna salida contiene secretos.
 
 output "dominio_cloudfront" {
