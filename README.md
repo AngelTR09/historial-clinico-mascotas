@@ -29,3 +29,9 @@ Un registro digital único por mascota, accesible para su propietario y para el 
 | Dueño de Mascota(s) | Consultar el historial y los próximos refuerzos desde un solo lugar |
 | Personal veterinario | Acceder al historial en pocas acciones durante la atención |
 | Albergues | Registro masivo, consulta agregada y transferencias de mascotas frecuentes |
+
+## Avance del código
+
+El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
+
+- **Base del monorepo** (pnpm workspace, ESLint, scripts de verificación). `pnpm install && pnpm lint`.
