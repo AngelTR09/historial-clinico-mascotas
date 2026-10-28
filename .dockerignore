@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+apps/api/storage
+.git
+.turbo
+.vite
+**/*.tsbuildinfo
+**/*.log
+.env
+.env.*
+!.env.example
+docs
+infra
+ansible
+load-tests

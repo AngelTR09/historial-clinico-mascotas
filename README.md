@@ -45,3 +45,4 @@ El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 - **Historial clínico**: eventos de salud, registro directo del veterinario y evidencias adjuntas.
 - **Transferencias y recordatorios**: transferencia atómica, recordatorios de vacunas, workers y la app HTTP completa.
 - **Web** (`apps/web`): aplicación React con panel del dueño, del veterinario y ficha pública.
+- **Docker**: imágenes de la API y la web y `docker-compose.yml` para levantar todo en local.
