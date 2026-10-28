@@ -47,3 +47,25 @@ run "multi_az_se_enciende_por_variable" {
     error_message = "La variable multi_az debe encender la réplica."
   }
 }
+
+run "no_fuerza_el_borrado_por_defecto" {
+  command = plan
+
+  assert {
+    condition     = aws_s3_bucket.evidencias.force_destroy == false
+    error_message = "Por defecto el destroy no debe borrar con contenido: solo dev lo activa."
+  }
+}
+
+run "dev_puede_forzar_el_borrado" {
+  command = plan
+
+  variables {
+    forzar_borrado = true
+  }
+
+  assert {
+    condition     = aws_s3_bucket.evidencias.force_destroy == true
+    error_message = "Con forzar_borrado el destroy debe poder borrar con contenido (dev)."
+  }
+}

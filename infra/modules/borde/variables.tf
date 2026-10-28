@@ -31,3 +31,9 @@ variable "clase_de_precio" {
   description = "Clase de precio de CloudFront."
   default     = "PriceClass_100"
 }
+
+variable "forzar_borrado" {
+  type        = bool
+  description = "Permite que terraform destroy borre el bucket de la web aunque tenga contenido. Solo true en dev (sin él el destroy falla); en prod siempre false y una política OPA lo impide."
+  default     = false
+}

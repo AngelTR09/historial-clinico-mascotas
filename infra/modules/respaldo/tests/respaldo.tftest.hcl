@@ -33,3 +33,25 @@ run "rechaza_retencion_mayor_a_35_dias" {
 
   expect_failures = [var.dias_retencion]
 }
+
+run "no_fuerza_el_borrado_por_defecto" {
+  command = plan
+
+  assert {
+    condition     = aws_backup_vault.principal.force_destroy == false
+    error_message = "Por defecto el destroy no debe borrar con contenido: solo dev lo activa."
+  }
+}
+
+run "dev_puede_forzar_el_borrado" {
+  command = plan
+
+  variables {
+    forzar_borrado = true
+  }
+
+  assert {
+    condition     = aws_backup_vault.principal.force_destroy == true
+    error_message = "Con forzar_borrado el destroy debe poder borrar con contenido (dev)."
+  }
+}

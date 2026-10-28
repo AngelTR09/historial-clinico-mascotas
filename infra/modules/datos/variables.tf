@@ -54,3 +54,9 @@ variable "dias_retencion_respaldos" {
   description = "Días de respaldo automático de RDS (habilita la recuperación a un punto en el tiempo)."
   default     = 7
 }
+
+variable "forzar_borrado" {
+  type        = bool
+  description = "Permite que terraform destroy borre el bucket de evidencias (con sus versiones) aunque tenga contenido. Solo true en dev (sin él el destroy falla); en prod siempre false y una política OPA lo impide."
+  default     = false
+}

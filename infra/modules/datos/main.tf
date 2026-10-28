@@ -106,6 +106,7 @@ resource "aws_dynamodb_table" "perfil_publico" {
 # aws-s3-enable-bucket-logging: Sin logs de acceso de S3: la auditoría de expedientes (RN 9) vive en audit_log, no en logs de S3.
 #tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "evidencias" {
+  force_destroy = var.forzar_borrado
   #checkov:skip=CKV_AWS_18:Sin logs de acceso: la auditoria de expedientes (RN 9) vive en audit_log, no en logs de S3
   #checkov:skip=CKV_AWS_144:Sin replicacion entre regiones: no la exige ningun RNF y duplicaria el costo de las imagenes
   #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: el OCR se encola desde la API, no desde S3

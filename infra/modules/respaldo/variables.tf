@@ -30,3 +30,9 @@ variable "dias_retencion" {
     error_message = "El respaldo continuo admite entre 1 y 35 días."
   }
 }
+
+variable "forzar_borrado" {
+  type        = bool
+  description = "Permite que terraform destroy borre la bóveda aunque tenga puntos de recuperación aunque tenga contenido. Solo true en dev (sin él el destroy falla); en prod siempre false y una política OPA lo impide."
+  default     = false
+}

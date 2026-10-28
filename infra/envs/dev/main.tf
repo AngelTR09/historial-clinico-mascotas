@@ -33,6 +33,7 @@ module "seguridad" {
 module "datos" {
   source = "../../modules/datos"
 
+  forzar_borrado            = !local.proteger
   etiquetas_comunes         = local.etiquetas
   arn_clave_datos           = module.seguridad.arn_clave_datos
   ids_subredes_privadas     = module.red.ids_subredes_privadas
@@ -63,6 +64,7 @@ module "identidad" {
 module "computo" {
   source = "../../modules/computo"
 
+  forzar_borrado        = !local.proteger
   etiquetas_comunes     = local.etiquetas
   id_vpc                = module.red.id_vpc
   ids_subredes_publicas = module.red.ids_subredes_publicas
@@ -112,6 +114,7 @@ module "computo" {
 module "borde" {
   source = "../../modules/borde"
 
+  forzar_borrado           = !local.proteger
   etiquetas_comunes        = local.etiquetas
   dns_alb                  = module.computo.dns_alb
   nombre_bucket_evidencias = module.datos.nombre_bucket_evidencias
@@ -150,6 +153,7 @@ module "observabilidad" {
 module "respaldo" {
   source = "../../modules/respaldo"
 
+  forzar_borrado    = !local.proteger
   etiquetas_comunes = local.etiquetas
   arn_clave_datos   = module.seguridad.arn_clave_datos
   arns_recursos     = [module.datos.arn_rds]

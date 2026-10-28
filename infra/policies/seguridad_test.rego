@@ -58,3 +58,15 @@ test_admin_fuera_de_oidc_se_deniega if {
 test_admin_en_rol_apply_pasa if {
 	count(seguridad.deny) == 0 with input as plan_con("aws_iam_role_policy_attachment", "module.github_oidc.aws_iam_role_policy_attachment.apply", {"policy_arn": "arn:aws:iam::aws:policy/AdministratorAccess"})
 }
+
+test_borrado_forzado_en_prod_se_deniega if {
+	count(seguridad.deny) == 1 with input as plan_con("aws_s3_bucket", "aws_s3_bucket.x", {"force_destroy": true, "tags_all": {"Env": "prod"}})
+}
+
+test_borrado_forzado_en_dev_pasa if {
+	count(seguridad.deny) == 0 with input as plan_con("aws_s3_bucket", "aws_s3_bucket.x", {"force_destroy": true, "tags_all": {"Env": "dev"}})
+}
+
+test_ecr_con_borrado_forzado_en_prod_se_deniega if {
+	count(seguridad.deny) == 1 with input as plan_con("aws_ecr_repository", "aws_ecr_repository.x", {"force_delete": true, "tags_all": {"Env": "prod"}})
+}
