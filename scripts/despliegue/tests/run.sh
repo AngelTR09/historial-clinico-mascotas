@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pruebas de los scripts de despliegue sin tocar AWS: `aws`, `docker`, `pnpm` y `curl` son falsos y registran
 # lo que reciben. Se corre con: bash scripts/despliegue/tests/run.sh
-# shellcheck disable=SC2329  # las funciones t_* se invocan de forma indirecta desde `caso`
+# shellcheck disable=SC2317,SC2329  # las funciones t_* se invocan de forma indirecta desde `caso`
 set -uo pipefail
 
 aqui="$(cd "$(dirname "$0")" && pwd)"
@@ -187,12 +187,10 @@ t_humo_correcto() {
 }
 
 t_humo_falla_si_la_api_no_responde() {
-  # shellcheck disable=SC2317
   ! CURL_API=mal INTENTOS=2 PAUSA=0 bash "$scripts/probar-humo.sh" ejemplo.cloudfront.net > /dev/null 2>&1
 }
 
 t_humo_falla_si_la_web_no_da_200() {
-  # shellcheck disable=SC2317
   ! CURL_WEB=502 PAUSA=0 bash "$scripts/probar-humo.sh" ejemplo.cloudfront.net > /dev/null 2>&1
 }
 
