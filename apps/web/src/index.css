@@ -1,0 +1,359 @@
+@import "tailwindcss";
+
+/*
+ * Sistema de diseño de Historial Clínico Mascotas.
+ *
+ * Color: paper/ink son la base neutra (deliberadamente fría, no el cream
+ * cálido genérico). pine es la acción principal. clay se reserva SOLO para
+ * estados de alerta/extravío. gold se reserva SOLO para lo verificado/oficial
+ * (evoca un sello). sand es el borde/superficie secundaria.
+ *
+ * Tipografía: Fraunces (serif cálida con carácter, para titulares) + IBM
+ * Plex Sans (cuerpo, con un aire técnico/civil apropiado para un registro
+ * nacional) + IBM Plex Mono (códigos: public_code, tokens de transferencia).
+ */
+@theme {
+  --color-paper: #f4f6f2;
+  --color-paper-raised: #ffffff;
+  --color-ink: #1b231f;
+  --color-ink-soft: #55625a;
+  --color-ink-faint: #8b9690;
+  --color-sand: #dcd6c4;
+  --color-sand-dark: #c9c2ac;
+
+  --color-pine: #215d48;
+  --color-pine-dark: #163f31;
+  --color-pine-tint: #e4efe9;
+
+  --color-clay: #b54a2c;
+  --color-clay-dark: #8f3a22;
+  --color-clay-tint: #f7e9e3;
+
+  --color-gold: #a87c2c;
+  --color-gold-dark: #7e5c1f;
+  --color-gold-tint: #f3ead6;
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /*
+   * Sistema de movimiento. Cada animación evoca un gesto del dominio, no
+   * adorno gratuito: la huella nasal que respira (el animal vivo), el barrido del
+   * escáner sobre la placa QR, el latido de un signo vital, el rastro de
+   * huellas. Se desactivan por completo con prefers-reduced-motion (abajo).
+   */
+  --animate-respirar: respirar 7s ease-in-out infinite;
+  --animate-flotar: flotar 9s ease-in-out infinite;
+  --animate-flotar-lento: flotar 15s ease-in-out infinite;
+  --animate-titilar: titilar 4s ease-in-out infinite;
+  --animate-escaneo: escaneo 3.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  --animate-latido: latido 2.6s ease-in-out infinite;
+  --animate-resplandor: resplandor 8s ease-in-out infinite;
+  --animate-entrada: entrada 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  --animate-trazo: trazo 2.6s ease-in-out infinite;
+
+  /* Sombras teñidas con el tono del tinte (ink), no negro puro: una sola fuente de luz arriba. */
+  --shadow-soft: 0 1px 2px rgb(27 35 31 / 0.05), 0 4px 12px -4px rgb(27 35 31 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(27 35 31 / 0.05), 0 12px 28px -10px rgb(33 93 72 / 0.22);
+
+  --animate-rise: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(60rem 32rem at 85% -10%, rgb(33 93 72 / 0.07), transparent 70%),
+      radial-gradient(40rem 28rem at -10% 110%, rgb(168 124 44 / 0.06), transparent 70%);
+    background-attachment: fixed;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Textura de papel casi invisible sobre toda la app (mismo tono que --color-paper). */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: url("/img/textura-papel.webp") center / cover;
+    mix-blend-mode: multiply;
+    opacity: 0.22;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Códigos y fechas alinean en columnas. */
+  code,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--color-pine-tint);
+    color: var(--color-pine-dark);
+  }
+
+  /* Foco visible y consistente para teclado (no aparece al hacer clic con el ratón). */
+  :where(a, button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--color-pine);
+    outline-offset: 2px;
+  }
+
+  :where(input, select, textarea):focus-visible {
+    outline-offset: 0;
+  }
+
+  /* Respuesta táctil: transición suave y leve presión al pulsar. */
+  :where(a, button) {
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease,
+      opacity 0.18s ease;
+  }
+
+  :where(button:not(:disabled), a[href]):active {
+    transform: scale(0.98);
+  }
+
+  :where(input, select, textarea) {
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+    background-color: var(--color-paper-raised);
+  }
+
+  :where(input, select, textarea)::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  :where(button:disabled) {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  /* Entrada escalonada: define --i (0, 1, 2…) en el elemento para el retraso. */
+  .rise {
+    animation: var(--animate-rise);
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Tarjeta interactiva que se eleva ligeramente al pasar el cursor. */
+  .lift {
+    box-shadow: var(--shadow-soft);
+    transition:
+      box-shadow 0.25s ease,
+      transform 0.25s ease,
+      border-color 0.25s ease;
+  }
+
+  .lift:hover {
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
+    border-color: var(--color-sand-dark);
+  }
+
+  /* Enlace de salto para teclado/lectores de pantalla. */
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 50;
+    border-radius: 0.5rem;
+    background-color: var(--color-ink);
+    padding: 0.625rem 1rem;
+    color: white;
+    font-size: 0.875rem;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Keyframes del sistema de movimiento (ver los tokens --animate-* en @theme).
+ */
+@keyframes respirar {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes flotar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes titilar {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes escaneo {
+  0% {
+    transform: translateY(-115%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(115%);
+    opacity: 0;
+  }
+}
+
+@keyframes latido {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.22);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.14);
+  }
+  56% {
+    transform: scale(1);
+  }
+}
+
+@keyframes resplandor {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes trazo {
+  0% {
+    stroke-dashoffset: 240;
+  }
+  55%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * Revelado al desplazar. El estado inicial oculta el bloque; el componente
+ * <Revelar> añade .revelar-visible cuando entra en pantalla (IntersectionObserver).
+ */
+@layer utilities {
+  .revelar {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: opacity, transform;
+  }
+
+  .revelar-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .revelar {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
