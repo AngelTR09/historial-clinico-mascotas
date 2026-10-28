@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788497129749,
+      "tag": "0000_spooky_chimera",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788497632654,
+      "tag": "0001_premium_dark_phoenix",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788499609809,
+      "tag": "0002_supreme_mindworm",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790178735338,
+      "tag": "0003_quitar_identidad_verificada",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790206342679,
+      "tag": "0004_veterinario_licencia_por_pais",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790206348667,
+      "tag": "0005_quitar_colegiatura_y_ruc",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790206840239,
+      "tag": "0006_mascota_datos_publicos",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790212013819,
+      "tag": "0007_quitar_microchip",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792617929957,
+      "tag": "0008_veterinario_registra_eventos",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792618426519,
+      "tag": "0009_retirar_validaciones",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792618611793,
+      "tag": "0010_login_con_codigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792619930952,
+      "tag": "0011_una_transferencia_pendiente",
+      "breakpoints": true
+    }
+  ]
+}

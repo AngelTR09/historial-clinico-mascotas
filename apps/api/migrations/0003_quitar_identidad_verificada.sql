@@ -1,0 +1,1 @@
+ALTER TABLE "owners" DROP COLUMN "identity_verified";

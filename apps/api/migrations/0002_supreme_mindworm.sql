@@ -1,0 +1,1 @@
+ALTER TABLE "vets" ALTER COLUMN "razon_social" DROP NOT NULL;
