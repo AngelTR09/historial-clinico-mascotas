@@ -1,5 +1,5 @@
 /**
- * Campos que nunca deben llegar a CloudWatch/Loki (documentación del proyecto §9 y §12: "una vez ahí, ya está").
+ * Campos que nunca deben llegar a CloudWatch/Loki (regla del proyecto: "una vez ahí, ya está").
  * Los nombres cubren los de este código (castellano) y los de las librerías/columnas (inglés).
  * pino solo admite `*` como un nivel por segmento, así que se cubren hasta tres niveles de profundidad.
  */

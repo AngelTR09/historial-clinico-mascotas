@@ -1,7 +1,6 @@
 # Contexto de build: la raíz del monorepo (necesario para resolver el
 # workspace de pnpm). Esta misma imagen sirve hoy para docker-compose local
-# y mañana para ECS Fargate: lo que cambia es el orquestador, no el Dockerfile
-# (documentación del proyecto sección 13).
+# y mañana para ECS Fargate: lo que cambia es el orquestador, no el Dockerfile.
 FROM node:20-alpine
 
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate

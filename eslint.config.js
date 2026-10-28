@@ -23,11 +23,11 @@ export default [
         },
     },
     {
-        // documentación del proyecto §13: el SDK de AWS solo se importa dentro de los adaptadores AWS. Los casos de
+        // Regla de puertos: el SDK de AWS solo se importa dentro de los adaptadores AWS. Los casos de
         // uso, las rutas y la web nunca conocen al proveedor.
         files: ["**/*.{js,jsx}"],
         rules: {
-            "no-restricted-imports": ["error", { patterns: [{ group: ["@aws-sdk/*"], message: "Importar @aws-sdk solo desde apps/api/src/adapters/aws/ (documentación del proyecto §13)." }] }],
+            "no-restricted-imports": ["error", { patterns: [{ group: ["@aws-sdk/*"], message: "Importar @aws-sdk solo desde apps/api/src/adapters/aws/ (regla de puertos del proyecto)." }] }],
         },
     },
     { files: ["apps/api/src/adapters/aws/**/*.js"], rules: { "no-restricted-imports": "off" } },
@@ -38,7 +38,7 @@ export default [
         ignores: ["**/*.test.js"],
         rules: {
             "no-restricted-imports": ["error", { patterns: [
-                { group: ["@aws-sdk/*"], message: "Importar @aws-sdk solo desde apps/api/src/adapters/aws/ (documentación del proyecto §13)." },
+                { group: ["@aws-sdk/*"], message: "Importar @aws-sdk solo desde apps/api/src/adapters/aws/ (regla de puertos del proyecto)." },
                 { group: ["**/adapters/**", "**/routes/**", "**/plugins/**"], message: "Un caso de uso depende de los puertos (src/ports), no de adaptadores, rutas ni plugins." },
             ] }],
         },
@@ -63,7 +63,7 @@ export default [
         files: ["apps/web/src/components/**/*.{js,jsx}", "apps/web/src/lib/**/*.js", "apps/web/src/hooks/**/*.js"],
         rules: {
             "no-restricted-imports": ["error", { patterns: [
-                { group: ["@aws-sdk/*"], message: "La web nunca conoce al proveedor (documentación del proyecto §13)." },
+                { group: ["@aws-sdk/*"], message: "La web nunca conoce al proveedor (regla de puertos del proyecto)." },
                 { group: ["**/pages/**"], message: "Las páginas componen componentes; un componente no importa páginas." },
             ] }],
         },

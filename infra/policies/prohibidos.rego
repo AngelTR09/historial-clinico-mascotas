@@ -1,4 +1,4 @@
-# Servicios prohibidos sin discusión previa (documentación del proyecto §11, ADR 0005).
+# Servicios prohibidos sin discusión previa (política de costos del proyecto).
 package hcm.prohibidos
 
 import rego.v1
@@ -28,7 +28,7 @@ warn contains msg if {
 	crea(rc)
 	rc.type == "aws_db_instance"
 	rc.change.after.multi_az == true
-	msg := sprintf("%s tiene Multi-AZ: encender solo en exposición y pruebas, y apagarlo al terminar (documentación del proyecto §11)", [rc.address])
+	msg := sprintf("%s tiene Multi-AZ: encender solo en exposición y pruebas, y apagarlo al terminar (política de costos del proyecto)", [rc.address])
 }
 
 warn contains msg if {

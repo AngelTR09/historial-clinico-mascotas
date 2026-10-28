@@ -1,4 +1,4 @@
-# Etiquetas obligatorias Project, Env y Owner en todo recurso que las admita (documentación del proyecto §11).
+# Etiquetas obligatorias Project, Env y Owner en todo recurso que las admita (política de costos del proyecto).
 package hcm.etiquetas
 
 import rego.v1

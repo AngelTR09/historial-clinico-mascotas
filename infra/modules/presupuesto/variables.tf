@@ -16,7 +16,7 @@ variable "correos_alerta" {
 
 variable "limite_mensual_usd" {
   type        = number
-  description = "Costo mensual objetivo en USD (documentación del proyecto §2)."
+  description = "Costo mensual objetivo en USD (presupuesto del curso)."
   default     = 35
 }
 

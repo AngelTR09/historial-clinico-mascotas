@@ -10,7 +10,7 @@ function registrar(objeto) {
     return lineas.join("");
 }
 
-describe("redacción de logs (documentación del proyecto §9)", () => {
+describe("redacción de logs", () => {
     it.each([
         ["numeroDocumento", { numeroDocumento: "12345678" }, "12345678"],
         ["correo (nombre real en este código)", { correo: "ana@example.com" }, "ana@example.com"],

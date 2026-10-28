@@ -9,7 +9,7 @@ import { construirPuertosLocales } from "../container.js";
 
 /**
  * Contrato frontend ↔ API. No hay compilador que detecte que el web llama a
- * una ruta que el backend renombró o borró (JavaScript puro, documentación del proyecto §9),
+ * una ruta que el backend renombró o borró (JavaScript puro, sin compilador que lo verifique),
  * así que este test lee el código fuente del web, extrae cada
  * `api.get|post|patch(<ruta>)` y exige que Fastify tenga esa ruta registrada.
  * Un 401/400/404 de dominio prueba que la ruta existe; solo el 404 genérico de

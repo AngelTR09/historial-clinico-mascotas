@@ -162,7 +162,7 @@ resource "aws_cloudfront_cache_policy" "ficha_publica" {
 }
 
 # aws-cloudfront-use-secure-tls-policy: Sin dominio propio la distribución usa el certificado por defecto de CloudFront, que no permite fijar la política TLS mínima.
-# aws-cloudfront-enable-logging: Sin logs de acceso de CloudFront en el PMV: costo y mantenimiento sin RNF que los pida (documentación del proyecto §18).
+# aws-cloudfront-enable-logging: Sin logs de acceso de CloudFront en el PMV: costo y mantenimiento sin RNF que los pida (alcance del PMV).
 #tfsec:ignore:aws-cloudfront-use-secure-tls-policy
 #tfsec:ignore:aws-cloudfront-enable-logging
 resource "aws_cloudfront_distribution" "principal" {

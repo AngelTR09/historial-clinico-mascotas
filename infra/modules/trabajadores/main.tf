@@ -1,4 +1,4 @@
-# Workers asíncronos (documentación del proyecto §5): cuatro Lambdas Node 20.
+# Workers asíncronos (stack del proyecto): cuatro Lambdas Node 20.
 #   proyector     SQS proyeccion     Postgres -> DynamoDB (ficha pública); también recarga las existentes
 #   normalizador  SQS normalizacion  texto libre de vacunas -> catálogo canónico; pide reproyectar la ficha
 #   recordatorios EventBridge diario busca vencimientos y los ENCOLA
@@ -130,7 +130,7 @@ resource "aws_iam_role_policy" "funcion" {
   })
 }
 
-# aws-lambda-enable-tracing: Sin X-Ray: diferido, ningún RNF del PDF lo exige (documentación del proyecto §18).
+# aws-lambda-enable-tracing: Sin X-Ray: diferido, ningún RNF del PDF lo exige (alcance del PMV).
 #tfsec:ignore:aws-lambda-enable-tracing
 resource "aws_lambda_function" "funcion" {
   #checkov:skip=CKV_AWS_50:Sin X-Ray: diferido, ningun RNF lo exige

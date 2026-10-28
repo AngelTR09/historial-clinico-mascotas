@@ -1,4 +1,4 @@
-# AWS Budgets al 50, 75 y 90 % desde el primer día (documentación del proyecto §11). Es el primer
+# AWS Budgets al 50, 75 y 90 % desde el primer día (política de costos del proyecto). Es el primer
 # recurso del proyecto: se aplica antes que cualquier otro.
 #
 # `include_credit = false` hace que el presupuesto mida el uso bruto: mientras los

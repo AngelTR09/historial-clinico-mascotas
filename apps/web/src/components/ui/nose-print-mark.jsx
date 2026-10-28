@@ -1,7 +1,7 @@
 /**
  * El motivo de la marca es la nariz del animal, cuya textura es
- * única para cada individuo, igual que la huella dactilar en las personas
- * (documentación del proyecto sección 1). Este es el único lugar del sitio donde ese motivo
+ * única para cada individuo, igual que la huella dactilar en las personas.
+ * Este es el único lugar del sitio donde ese motivo
  * aparece como ilustración — el momento de "gastar el atrevimiento" en un
  * solo sitio en vez de repetirlo por todas partes. La forma es la nariz
  * vista de frente (más ancha que alta, fosas en diagonal, surco central),

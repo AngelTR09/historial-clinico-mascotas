@@ -1,4 +1,4 @@
-# Este entorno solo llama módulos de ../../modules (documentación del proyecto §9: sin recursos sueltos).
+# Este entorno solo llama módulos de ../../modules (convención del proyecto: sin recursos sueltos).
 # dev y prod tienen la misma estructura; solo cambian las protecciones (local.proteger).
 
 locals {
@@ -24,7 +24,7 @@ module "seguridad" {
   etiquetas_comunes          = local.etiquetas
   dias_recuperacion_secretos = local.proteger ? 7 : 0
 
-  # OCR_ENABLED=false por defecto en TODOS los entornos (documentación del proyecto §11).
+  # OCR_ENABLED=false por defecto en TODOS los entornos (política de costos del proyecto).
   parametros = {
     OCR_ENABLED = "false"
   }

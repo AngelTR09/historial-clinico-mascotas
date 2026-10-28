@@ -1,4 +1,4 @@
-# La API de Fastify con la MISMA imagen Docker de la fase local (documentación del proyecto §13), en
+# La API de Fastify con la MISMA imagen Docker de la fase local (la imagen no cambia entre local y AWS), en
 # ECS Fargate detrás de un ALB, con Application Auto Scaling. La TLS termina en
 # CloudFront; el ALB solo acepta tráfico de CloudFront (grupo de seguridad con la lista
 # de prefijos gestionada por AWS).
@@ -114,7 +114,7 @@ resource "aws_iam_role" "tarea" {
 }
 
 # Permisos mínimos de la API: firmar subidas de evidencias, leer y escribir DynamoDB,
-# encolar trabajo y descifrar con la clave de datos. Nunca recibe el binario (documentación del proyecto §12).
+# encolar trabajo y descifrar con la clave de datos. Nunca recibe el binario (regla del proyecto: el backend no recibe archivos).
 resource "aws_iam_role_policy" "tarea" {
   name = "permisos-de-la-api"
   role = aws_iam_role.tarea.id
@@ -249,7 +249,7 @@ resource "aws_lb_target_group" "api" {
   tags = var.etiquetas_comunes
 }
 
-# aws-elb-http-not-used: Compromiso de costo del PMV (documentación del proyecto §18): sin dominio propio no hay certificado ACM para el ALB. La TLS termina en CloudFront y el ALB solo admite la lista de prefijos de CloudFront.
+# aws-elb-http-not-used: Compromiso de costo del PMV: sin dominio propio no hay certificado ACM para el ALB. La TLS termina en CloudFront y el ALB solo admite la lista de prefijos de CloudFront.
 #tfsec:ignore:aws-elb-http-not-used
 resource "aws_lb_listener" "http" {
   #checkov:skip=CKV_AWS_2:La TLS termina en CloudFront; el ALB solo es alcanzable desde la lista de prefijos de CloudFront
@@ -267,7 +267,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_ecs_service" "api" {
-  #checkov:skip=CKV_AWS_333:Las tareas necesitan IP publica para llegar a las APIs de AWS sin NAT Gateway (documentación del proyecto.md §11); el grupo de seguridad solo admite trafico del ALB
+  #checkov:skip=CKV_AWS_333:Las tareas necesitan IP publica para llegar a las APIs de AWS sin NAT Gateway (política de costos del proyecto); el grupo de seguridad solo admite trafico del ALB
   name            = local.nombre_servicio
   cluster         = aws_ecs_cluster.principal.id
   task_definition = aws_ecs_task_definition.api.arn
