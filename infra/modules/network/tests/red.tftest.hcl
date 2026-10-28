@@ -63,3 +63,17 @@ run "las_zonas_por_defecto_siguen_a_la_region" {
     error_message = "Sin zonas explícitas se usan <región>a y <región>b: nunca zonas de otra región."
   }
 }
+
+run "la_api_y_las_lambdas_pueden_usar_los_endpoints_de_interfaz" {
+  command = plan
+
+  assert {
+    condition     = aws_vpc_endpoint.interfaz["secretsmanager"].private_dns_enabled == true
+    error_message = "Con DNS privado los nombres de AWS resuelven a los endpoints para toda la VPC."
+  }
+
+  assert {
+    condition     = aws_vpc_security_group_ingress_rule.endpoints_desde_api.from_port == 443 && aws_vpc_security_group_ingress_rule.endpoints_desde_api.ip_protocol == "tcp" && aws_vpc_security_group_ingress_rule.endpoints_desde_funciones.from_port == 443
+    error_message = "Tanto la API como las Lambdas deben poder llegar a los endpoints por HTTPS: sin la regla de la API, la tarea no puede leer sus secretos."
+  }
+}

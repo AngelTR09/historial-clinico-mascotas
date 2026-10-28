@@ -281,3 +281,15 @@ resource "aws_vpc_security_group_ingress_rule" "endpoints_desde_funciones" {
   to_port                      = 443
   referenced_security_group_id = aws_security_group.funciones.id
 }
+
+# Con private_dns_enabled los nombres de Secrets Manager y SQS resuelven a estos endpoints para TODA la VPC,
+# también para la API aunque tenga IP pública: sin esta regla sus conexiones a esos servicios caducaban y la
+# tarea no arrancaba (ResourceInitializationError al leer los secretos).
+resource "aws_vpc_security_group_ingress_rule" "endpoints_desde_api" {
+  security_group_id            = aws_security_group.endpoints.id
+  description                  = "HTTPS desde la API"
+  ip_protocol                  = "tcp"
+  from_port                    = 443
+  to_port                      = 443
+  referenced_security_group_id = aws_security_group.api.id
+}
