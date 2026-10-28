@@ -35,3 +35,4 @@ Un registro digital único por mascota, accesible para su propietario y para el 
 El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 
 - **Base del monorepo** (pnpm workspace, ESLint, scripts de verificación). `pnpm install && pnpm lint`.
+- **Contrato compartido** (`packages/shared`): esquemas zod y código público con dígito verificador.
