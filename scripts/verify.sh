@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Puerta de calidad local = la misma que corre CI antes de aceptar un PR o desplegar.
-# Uso: pnpm verify        (requiere Postgres local y .env; ver LOCAL-hcm/README.md)
-# El proyecto es JavaScript puro (documentación del proyecto §9): no hay `tsc`. Lo que hace de "type check":
+# Uso: pnpm verify        (requiere Postgres local y .env; ver el README)
+# El proyecto es JavaScript puro: no hay `tsc`. Lo que hace de "type check":
 #   ESLint (no-undef, imports) + zod en los bordes + test de contrato web↔API + drift de migraciones.
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -42,13 +42,13 @@ variable "nombres_colas_fallidos" {
 
 variable "umbral_cola" {
   type        = number
-  description = "Mensajes en cola que disparan la alerta (documentación del proyecto §10: 5 000)."
+  description = "Mensajes en cola que disparan la alerta (umbral del proyecto: 5 000)."
   default     = 5000
 }
 
 variable "umbral_error_porcentaje" {
   type        = number
-  description = "Porcentaje de respuestas 5xx que dispara la alerta (documentación del proyecto §10: 1 %)."
+  description = "Porcentaje de respuestas 5xx que dispara la alerta (umbral del proyecto: 1 %)."
   default     = 1
 }
 

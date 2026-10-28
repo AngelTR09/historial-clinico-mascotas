@@ -146,7 +146,7 @@ resource "aws_s3_bucket_public_access_block" "evidencias" {
   restrict_public_buckets = true
 }
 
-# Evidencias a Glacier Instant Retrieval a los 90 días (documentación del proyecto §11).
+# Evidencias a Glacier Instant Retrieval a los 90 días (política de costos del proyecto).
 resource "aws_s3_bucket_lifecycle_configuration" "evidencias" {
   bucket = aws_s3_bucket.evidencias.id
 

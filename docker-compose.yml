@@ -18,7 +18,7 @@ services:
       POSTGRES_DB: hcm
     ports:
       # 5433 en el host: evita chocar con un Postgres nativo en el 5432
-      # (el que usa el flujo sin Docker de documentación del proyecto sección 13).
+      # (el que usa el flujo sin Docker).
       - "5433:5432"
     volumes:
       - hcm-db-data:/var/lib/postgresql/data

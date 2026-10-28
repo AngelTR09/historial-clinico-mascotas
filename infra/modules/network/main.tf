@@ -1,4 +1,4 @@
-# VPC de dos zonas SIN NAT Gateway (documentación del proyecto §11). Subredes públicas para el ALB y las
+# VPC de dos zonas SIN NAT Gateway (política de costos del proyecto). Subredes públicas para el ALB y las
 # tareas Fargate (con IP pública), subredes privadas para RDS y las Lambdas que leen la
 # base. Los endpoints gateway de S3 y DynamoDB son gratis.
 
@@ -19,7 +19,7 @@ locals {
   cidr_privadas = [for i, _ in local.zonas : cidrsubnet(var.cidr_vpc, 8, i + 10)]
 }
 
-# aws-ec2-require-vpc-flow-logs-for-all-vpcs: Flow logs diferidos: no los exige ningún RNF del PDF y suman costo de ingesta (documentación del proyecto §18).
+# aws-ec2-require-vpc-flow-logs-for-all-vpcs: Flow logs diferidos: no los exige ningún RNF del PDF y suman costo de ingesta (alcance del PMV).
 #tfsec:ignore:aws-ec2-require-vpc-flow-logs-for-all-vpcs
 resource "aws_vpc" "principal" {
   #checkov:skip=CKV2_AWS_11:Flow logs diferidos: no los exige ningun RNF del PDF y suman costo de ingesta

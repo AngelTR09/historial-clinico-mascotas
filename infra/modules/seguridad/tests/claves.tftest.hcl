@@ -19,6 +19,6 @@ run "clave_rota_y_tres_secretos_sin_valores" {
 
   assert {
     condition     = aws_ssm_parameter.configuracion["OCR_ENABLED"].value == "false"
-    error_message = "OCR_ENABLED debe quedar en false (documentación del proyecto §11)."
+    error_message = "OCR_ENABLED debe quedar en false (política de costos del proyecto)."
   }
 }

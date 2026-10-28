@@ -1,7 +1,7 @@
 # Una sola clave KMS de datos (RDS, DynamoDB, S3 de evidencias, secretos, logs, SNS) para
 # no pagar una clave por servicio, más los contenedores de los secretos de la API. Los
 # VALORES de los secretos no están en Terraform: se cargan a mano una vez, para que nunca
-# queden en el estado (documentación del proyecto §9: ningún secreto en el repositorio).
+# queden en el estado (convención del proyecto: ningún secreto en el repositorio).
 
 data "aws_caller_identity" "actual" {}
 data "aws_region" "actual" {}
