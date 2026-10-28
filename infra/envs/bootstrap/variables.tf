@@ -32,6 +32,12 @@ variable "arn_monitor_anomalias_existente" {
   default     = ""
 }
 
+variable "prefijo_sub_github" {
+  type        = string
+  description = "Prefijo del claim sub de GitHub para el repositorio (con identificador inmutable). Obtenerlo con: gh api repos/<dueño>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix. Vacío: repo:<repositorio_github>."
+  default     = ""
+}
+
 variable "crear_proveedor_oidc" {
   type        = bool
   description = "Crear el proveedor OIDC de GitHub; false si la cuenta ya tiene uno."

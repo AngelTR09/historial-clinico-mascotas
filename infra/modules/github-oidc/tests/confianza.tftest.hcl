@@ -75,3 +75,36 @@ run "el_plan_solo_escribe_archivos_de_bloqueo_en_el_bucket_de_estado" {
     error_message = "El rol de plan no puede escribir nada más que los *.tflock: ni el estado ni otros objetos."
   }
 }
+
+run "con_identificador_inmutable_solo_confia_en_ese_prefijo" {
+  command = plan
+
+  variables {
+    prefijo_sub_github = "repo:AngelTR09@235907005/historial-clinico-mascotas@1408882331"
+  }
+
+  assert {
+    condition     = strcontains(aws_iam_role.plan.assume_role_policy, "repo:AngelTR09@235907005/historial-clinico-mascotas@1408882331:pull_request")
+    error_message = "El rol de plan debe confiar en el sub con identificador inmutable."
+  }
+
+  assert {
+    condition     = !strcontains(aws_iam_role.plan.assume_role_policy, "repo:AngelTR09/historial-clinico-mascotas") && !strcontains(aws_iam_role.apply.assume_role_policy, "repo:AngelTR09/historial-clinico-mascotas")
+    error_message = "Con identificador inmutable no se acepta el sub clásico por nombre: un repositorio recreado con el mismo nombre podría usarlo."
+  }
+
+  assert {
+    condition     = strcontains(aws_iam_role.apply.assume_role_policy, "repo:AngelTR09@235907005/historial-clinico-mascotas@1408882331:ref:refs/heads/main") && strcontains(aws_iam_role.apply.assume_role_policy, "repo:AngelTR09@235907005/historial-clinico-mascotas@1408882331:environment:aws-prod")
+    error_message = "El rol de apply debe confiar en main y en los environments con el mismo prefijo inmutable."
+  }
+}
+
+run "rechaza_un_prefijo_con_comodin" {
+  command = plan
+
+  variables {
+    prefijo_sub_github = "repo:AngelTR09@*/historial-clinico-mascotas@*"
+  }
+
+  expect_failures = [var.prefijo_sub_github]
+}

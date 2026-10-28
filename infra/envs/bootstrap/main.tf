@@ -41,6 +41,7 @@ module "github_oidc" {
 
   nombre_proyecto      = var.nombre_proyecto
   repositorio_github   = var.repositorio_github
+  prefijo_sub_github   = var.prefijo_sub_github
   crear_proveedor_oidc = var.crear_proveedor_oidc
   arn_bucket_estado    = module.estado.arn_bucket_estado
   arn_tabla_bloqueo    = module.estado.arn_tabla_bloqueo

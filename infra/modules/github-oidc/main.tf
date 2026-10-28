@@ -6,6 +6,11 @@
 data "aws_caller_identity" "actual" {}
 
 locals {
+  # GitHub emite el `sub` con el identificador inmutable del repositorio cuando este lo tiene activado
+  # (repo:<dueño>@<id>/<repo>@<id>): así un repositorio renombrado o recreado con el mismo nombre no hereda el
+  # acceso. Se confía en UN solo prefijo: el que se pasa en prefijo_sub_github o, si va vacío, el clásico por nombre.
+  prefijo_sub = var.prefijo_sub_github != "" ? var.prefijo_sub_github : "repo:${var.repositorio_github}"
+
   arn_proveedor = "arn:aws:iam::${data.aws_caller_identity.actual.account_id}:oidc-provider/token.actions.githubusercontent.com"
 
   # Un job que declara `environment:` recibe de GitHub un `sub` distinto
@@ -13,12 +18,12 @@ locals {
   # pull_request. Los workflows de despliegue usan environments (Pendiente_Integrar/github-actions/GITHUB-ACTIONS.md),
   # así que se aceptan los nombres explícitos de esas variables y ninguno más.
   subs_plan = concat(
-    ["repo:${var.repositorio_github}:pull_request"],
-    [for e in var.entornos_plan : "repo:${var.repositorio_github}:environment:${e}"],
+    ["${local.prefijo_sub}:pull_request"],
+    [for e in var.entornos_plan : "${local.prefijo_sub}:environment:${e}"],
   )
   subs_apply = concat(
-    ["repo:${var.repositorio_github}:ref:refs/heads/${var.rama_apply}"],
-    [for e in var.entornos_apply : "repo:${var.repositorio_github}:environment:${e}"],
+    ["${local.prefijo_sub}:ref:refs/heads/${var.rama_apply}"],
+    [for e in var.entornos_apply : "${local.prefijo_sub}:environment:${e}"],
   )
 }
 
