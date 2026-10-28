@@ -1,0 +1,36 @@
+{
+  "taskDefinitionArn": "arn:aws:ecs:us-east-2:111111111111:task-definition/hcm-api:2",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "111111111111.dkr.ecr.us-east-2.amazonaws.com/hcm-api:inicial",
+      "cpu": 0,
+      "portMappings": [{"containerPort": 3000, "hostPort": 3000, "protocol": "tcp"}],
+      "essential": true,
+      "environment": [{"name": "PROVEEDOR", "value": "aws"}, {"name": "PORT", "value": "3000"}],
+      "secrets": [{"name": "JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:us-east-2:111111111111:secret:hcm/firma-acceso-vet-abc"}],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "systemControls": [],
+      "readonlyRootFilesystem": true,
+      "logConfiguration": {"logDriver": "awslogs", "options": {"awslogs-group": "/ecs/hcm-api", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "api"}}
+    }
+  ],
+  "family": "hcm-api",
+  "taskRoleArn": "arn:aws:iam::111111111111:role/hcm-api-tarea",
+  "executionRoleArn": "arn:aws:iam::111111111111:role/hcm-api-ejecucion",
+  "networkMode": "awsvpc",
+  "revision": 2,
+  "volumes": [{"name": "tmp"}],
+  "status": "ACTIVE",
+  "requiresAttributes": [{"name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"}],
+  "placementConstraints": [],
+  "compatibilities": ["EC2", "FARGATE"],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {"cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX"},
+  "registeredAt": "2026-10-28T10:00:00+00:00",
+  "registeredBy": "arn:aws:iam::111111111111:role/ejemplo",
+  "enableFaultInjection": false
+}

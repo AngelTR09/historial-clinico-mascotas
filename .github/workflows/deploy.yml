@@ -3,6 +3,8 @@ name: Deploy
 # Despliegue del entorno dev. Corre SOLO con un push a la rama development (la rama de despliegue protegida).
 # El job usa el GitHub Environment `dev`, que limita la rama de despliegue y es el único `sub` que acepta el
 # rol de AWS: ningún pull request ni otra rama puede asumirlo. Sin claves de larga vida: OIDC.
+# Hace `terraform apply` y después lo que antes era manual (secretos, imagen, migraciones, Lambdas y web): ver
+# scripts/despliegue/README.md.
 on:
   push:
     branches: [development]
@@ -22,19 +24,19 @@ jobs:
     name: Desplegar dev (terraform apply)
     runs-on: ubuntu-latest
     environment: dev
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       TF_IN_AUTOMATION: "true"
       TF_VAR_ids_cuentas_permitidas: ${{ vars.AWS_ACCOUNT_ID != '' && format('["{0}"]', vars.AWS_ACCOUNT_ID) || '[]' }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Terraform lee el .zip de cada Lambda: se construyen desde el código.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: pnpm
@@ -45,12 +47,12 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm trabajadores:empaquetar
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: 1.17.0
           terraform_wrapper: false
 
-      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -90,6 +92,62 @@ jobs:
         working-directory: infra/envs/dev
         run: terraform apply -input=false dev.tfplan
 
-      - name: Salidas del despliegue
+      - name: Salidas de Terraform
         working-directory: infra/envs/dev
-        run: terraform output
+        run: |
+          terraform output
+          salidas=$(terraform output -json)
+          {
+            echo "CLUSTER=$(jq -r .nombre_cluster.value <<< "$salidas")"
+            echo "SERVICIO=$(jq -r .nombre_servicio.value <<< "$salidas")"
+            echo "REPOSITORIO_ECR=$(jq -r .url_repositorio_ecr.value <<< "$salidas")"
+            echo "BUCKET_WEB=$(jq -r .nombre_bucket_web.value <<< "$salidas")"
+            echo "ID_DISTRIBUCION=$(jq -r .id_distribucion.value <<< "$salidas")"
+            echo "DOMINIO=$(jq -r .dominio_cloudfront.value <<< "$salidas")"
+          } >> "$GITHUB_ENV"
+
+      # Desde aquí, lo que antes se hacía a mano después del apply. Cada paso es un script de
+      # scripts/despliegue/, probado en CI con servicios falsos, y es idempotente: un despliegue repetido
+      # no rota los secretos, no vuelve a subir una imagen que ya existe y solo reaplica lo que cambió.
+      - name: Cargar los secretos de la API (solo los que no tienen valor)
+        run: bash scripts/despliegue/cargar-secretos.sh
+
+      - name: Construir y subir la imagen de la API
+        run: |
+          imagen=$(ETIQUETA="${GITHUB_SHA::12}" bash scripts/despliegue/publicar-imagen.sh | tail -1)
+          echo "IMAGEN=$imagen" >> "$GITHUB_ENV"
+
+      - name: Desplegar la imagen en ECS
+        run: |
+          tarea=$(bash scripts/despliegue/registrar-tarea.sh "$IMAGEN")
+          echo "TAREA_ARN=$tarea" >> "$GITHUB_ENV"
+          aws ecs update-service --region "$AWS_REGION" --cluster "$CLUSTER" --service "$SERVICIO" \
+            --task-definition "$tarea" --force-new-deployment --query 'service.taskDefinition' --output text
+          if ! aws ecs wait services-stable --region "$AWS_REGION" --cluster "$CLUSTER" --services "$SERVICIO"; then
+            aws ecs describe-services --region "$AWS_REGION" --cluster "$CLUSTER" --services "$SERVICIO" \
+              --query 'services[0].events[:5].message' --output text
+            exit 1
+          fi
+
+      - name: Migrar la base de datos
+        run: bash scripts/despliegue/migrar-bd.sh "$TAREA_ARN"
+
+      - name: Actualizar el código de las Lambdas
+        run: bash scripts/despliegue/actualizar-lambdas.sh
+
+      - name: Publicar la web
+        run: bash scripts/despliegue/publicar-web.sh
+
+      - name: Prueba de humo
+        run: bash scripts/despliegue/probar-humo.sh "$DOMINIO"
+
+      - name: Resumen del despliegue
+        run: |
+          {
+            echo "## Despliegue de dev"
+            echo "- Aplicación: https://$DOMINIO"
+            echo "- Imagen: \`$IMAGEN\`"
+            echo "- Definición de tarea: \`$TAREA_ARN\`"
+            echo ""
+            echo "Pendiente a mano, porque llega por correo: abrir el enlace de verificación de SES y confirmar la suscripción de alertas de SNS."
+          } >> "$GITHUB_STEP_SUMMARY"
