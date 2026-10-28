@@ -40,3 +40,40 @@ run "rechaza_lista_de_correos_vacia" {
 
   expect_failures = [var.correos_alerta]
 }
+
+run "crea_su_monitor_de_anomalias_si_la_cuenta_no_tiene_uno" {
+  command = plan
+
+  assert {
+    condition     = length(aws_ce_anomaly_monitor.servicios) == 1
+    error_message = "Sin un monitor existente, el módulo crea el suyo."
+  }
+}
+
+run "reutiliza_el_monitor_existente_y_no_crea_otro" {
+  command = plan
+
+  variables {
+    arn_monitor_anomalias_existente = "arn:aws:ce::123456789012:anomalymonitor/11111111-2222-3333-4444-555555555555"
+  }
+
+  assert {
+    condition     = length(aws_ce_anomaly_monitor.servicios) == 0
+    error_message = "Con un monitor existente no se crea otro: AWS solo admite uno de ese tipo por cuenta."
+  }
+
+  assert {
+    condition     = toset(aws_ce_anomaly_subscription.diaria.monitor_arn_list) == toset(["arn:aws:ce::123456789012:anomalymonitor/11111111-2222-3333-4444-555555555555"])
+    error_message = "La suscripción debe apuntar al monitor existente."
+  }
+}
+
+run "rechaza_un_arn_de_monitor_mal_formado" {
+  command = plan
+
+  variables {
+    arn_monitor_anomalias_existente = "no-es-un-arn"
+  }
+
+  expect_failures = [var.arn_monitor_anomalias_existente]
+}

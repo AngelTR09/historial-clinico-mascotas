@@ -29,9 +29,10 @@ module "estado" {
 module "presupuesto" {
   source = "../../modules/presupuesto"
 
-  nombre_proyecto   = var.nombre_proyecto
-  correos_alerta    = var.correos_alerta
-  etiquetas_comunes = local.etiquetas
+  nombre_proyecto                 = var.nombre_proyecto
+  correos_alerta                  = var.correos_alerta
+  arn_monitor_anomalias_existente = var.arn_monitor_anomalias_existente
+  etiquetas_comunes               = local.etiquetas
 }
 
 module "github_oidc" {
