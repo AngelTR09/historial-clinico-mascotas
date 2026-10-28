@@ -30,6 +30,115 @@ Un registro digital único por mascota, accesible para su propietario y para el 
 | Personal veterinario | Acceder al historial en pocas acciones durante la atención |
 | Albergues | Registro masivo, consulta agregada y transferencias de mascotas frecuentes |
 
+## Cómo funciona
+
+Cada mascota tiene un expediente con su historial de vacunas, chequeos, tratamientos y desparasitaciones, y
+una placa con código QR que abre una ficha pública si se extravía (sin datos personales del dueño).
+
+- **Dueño:** registra mascotas, carga eventos con fotos de cartillas y recetas, recibe recordatorios de vacunas
+  y puede transferir la mascota a otra persona con un código de un solo uso.
+- **Veterinario colegiado:** escanea el QR, accede al expediente durante 4 horas y registra directamente lo que
+  atiende. Una corrección nunca edita un evento: crea uno nuevo que referencia al anterior.
+- **Ficha pública:** se arma desde un modelo de lectura aparte para seguir respondiendo aunque la base principal falle.
+
+La API (Fastify + PostgreSQL) y la web (React + Vite) comparten los esquemas de `packages/shared`. Todo lo que en
+la nube será un servicio de AWS (almacenamiento, colas, correo, secretos) está detrás de un puerto, con un adaptador
+local y uno de AWS; se elige con `PROVEEDOR=local|aws`.
+
+## Levantarlo con Docker (recomendado)
+
+No hace falta tener Node ni pnpm: todo corre en contenedores.
+
+**Requisitos:** Docker con Compose v2 (`docker compose`, con espacio), `openssl` para generar los secretos
+(en Windows, usar Git Bash o WSL) y los puertos **3000** (API), **5173** (web) y **5433** (Postgres) libres.
+
+### 1. Crear el `.env` (una sola vez)
+
+```bash
+[ -f .env ] || printf 'JWT_SECRET=%s\nDOC_ENCRYPTION_KEY=%s\nDOC_HMAC_PEPPER=%s\n' \
+  "$(openssl rand -hex 32)" "$(openssl rand -base64 32)" "$(openssl rand -hex 32)" > .env
+```
+
+`DOC_ENCRYPTION_KEY` debe ser base64 de exactamente 32 bytes, así que no la escribas a mano. Cambiarla deja
+ilegibles los documentos ya guardados. El `.env` está en `.gitignore` y nunca se sube.
+
+### 2. Levantar
+
+```bash
+docker compose up --build
+```
+
+Levanta, en orden: `db` (Postgres 17), `migrate` (migraciones), `seed` (3 dueños, 5 mascotas y 20 eventos de
+ejemplo, y un token de prueba por dueño), `api` y `web`. Está listo cuando `docker compose ps` muestra `api`,
+`db` y `web` en `Up` (`migrate` y `seed` terminan solos).
+
+| Qué | Dónde |
+|---|---|
+| Web | <http://localhost:5173> |
+| API | <http://localhost:3000> |
+| Postgres | `localhost:5433`, usuario, contraseña y base `hcm` |
+| Tokens de prueba | `docker compose logs seed` |
+| Código de 6 dígitos del login | `docker compose logs -f api` (busca `codigo_verificacion`; en local no sale por correo) |
+
+```bash
+docker compose ps                  # estado de cada servicio
+docker compose logs -f api         # logs de la API
+docker compose up --build -d       # reconstruir tras cambiar código
+docker compose down                # apagar conservando los datos
+docker compose down -v             # apagar y BORRAR los datos
+```
+
+| Síntoma | Arreglo |
+|---|---|
+| `port is already allocated` | Otro programa usa 3000, 5173 o 5433; ciérralo o cambia el puerto en `docker-compose.yml`. |
+| `The "JWT_SECRET" variable is not set` | Falta el `.env`; créalo como en el paso 1. |
+| `DOC_ENCRYPTION_KEY debe ser base64 de 32 bytes` | Genérala con `openssl rand -base64 32`. |
+| Cambié el código y no se nota | Falta `--build`. |
+
+## Levantarlo sin Docker
+
+Requisitos: Node 20.19 o superior, pnpm 9.15.4 (`corepack enable`) y PostgreSQL 17 en local.
+
+```bash
+pnpm install
+cp .env.example .env     # completa DATABASE_URL y las variables de JWT y cifrado
+pnpm db:migrate
+pnpm db:seed
+pnpm dev                 # API en :3000 y web en :5173
+```
+
+## Comandos útiles
+
+```bash
+pnpm lint            # ESLint en los tres paquetes
+pnpm -r test         # pruebas (desde la pieza C necesitan PostgreSQL y las variables del .env)
+pnpm build           # build de producción
+pnpm db:reset        # trunca las tablas y vuelve a sembrar (solo bases locales)
+pnpm verify          # lockfile, lint, pruebas, build y auditoría de dependencias
+```
+
+## Estructura del repositorio
+
+```
+├── apps/
+│   ├── api/src/        Fastify + Drizzle
+│   │   ├── routes/       HTTP: una ruta por recurso, sin lógica de negocio
+│   │   ├── use-cases/    lógica de negocio por dominio (accounts, pets, health, transfers, vets, reminders, public)
+│   │   ├── ports/        contratos de todo lo que será un servicio de AWS
+│   │   ├── adapters/     local/ y aws/ (S3, SQS, SES, DynamoDB, Secrets Manager)
+│   │   ├── workers/      trabajo asíncrono (normalizador, recordatorios, proyector)
+│   │   └── db/, domain/, crypto/, audit/, auth/, plugins/
+│   └── web/src/        React + Vite + Tailwind
+├── packages/shared/    esquemas zod: contrato único entre web y API
+├── infra/              Terraform (módulos, entornos y políticas OPA; sin aplicar)
+├── scripts/            verificación, respaldo y pruebas de mutación
+├── docker-compose.yml  db + migrate + seed + api + web
+└── PLAN-MIGRACION-AWS.md
+```
+
+El despliegue a AWS todavía no se ejecuta: el Terraform de `infra/` está escrito y validado, pero no aplicado.
+Ver `PLAN-MIGRACION-AWS.md`.
+
 ## Avance del código
 
 El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
