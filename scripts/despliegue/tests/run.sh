@@ -187,10 +187,12 @@ t_humo_correcto() {
 }
 
 t_humo_falla_si_la_api_no_responde() {
+  # shellcheck disable=SC2317
   ! CURL_API=mal INTENTOS=2 PAUSA=0 bash "$scripts/probar-humo.sh" ejemplo.cloudfront.net > /dev/null 2>&1
 }
 
 t_humo_falla_si_la_web_no_da_200() {
+  # shellcheck disable=SC2317
   ! CURL_WEB=502 PAUSA=0 bash "$scripts/probar-humo.sh" ejemplo.cloudfront.net > /dev/null 2>&1
 }
 
