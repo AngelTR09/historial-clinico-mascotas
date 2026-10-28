@@ -137,6 +137,10 @@ pnpm verify          # lockfile, lint, pruebas, build y auditoría de dependenci
 
 El despliegue a AWS todavía no se ejecuta: el Terraform de `infra/` está escrito y validado, pero no aplicado.
 
+## Documentación
+
+- [Proyecto a Desarrollar](docs/proyecto-a-desarrollar-historia-clinica-mascotas.pdf): el documento rector del sistema, con sus 18 requisitos no funcionales (RNF 01-18), la tabla de SLA y el diagrama de arquitectura. Los `Refs: RNF xx` de los commits remiten a su numeración.
+
 ## Avance del código
 
 El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
