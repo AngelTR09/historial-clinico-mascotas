@@ -14,6 +14,17 @@ variable "repositorio_github" {
   }
 }
 
+variable "prefijo_sub_github" {
+  type        = string
+  description = "Prefijo del claim sub que GitHub emite para el repositorio. Con identificador inmutable es repo:<dueño>@<id>/<repo>@<id>; se obtiene con: gh api repos/<dueño>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix. Vacío: repo:<repositorio_github>."
+  default     = ""
+
+  validation {
+    condition     = var.prefijo_sub_github == "" || can(regex("^repo:[A-Za-z0-9._-]+(@[0-9]+)?/[A-Za-z0-9._-]+(@[0-9]+)?$", var.prefijo_sub_github))
+    error_message = "Debe tener la forma repo:<dueño>@<id>/<repo>@<id> (los @<id> son opcionales), sin comodines."
+  }
+}
+
 variable "rama_apply" {
   type        = string
   description = "Única rama desde la que se permite terraform apply."
