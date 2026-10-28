@@ -40,3 +40,4 @@ El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 - **Puertos y adaptadores locales** (`apps/api/src/ports`, `adapters/local`): todo servicio externo detrás de una interfaz.
 - **Cuentas y login**: dueños y veterinarios, inicio de sesión con código de 6 dígitos por correo.
 - **Adaptadores AWS** (`adapters/aws`): S3, SQS, SES, DynamoDB y Secrets Manager, activos con `PROVEEDOR=aws`.
+- **Terraform base** (`infra/`): bootstrap, presupuesto, OIDC de GitHub, red y seguridad. Ver `PLAN-MIGRACION-AWS.md`.
