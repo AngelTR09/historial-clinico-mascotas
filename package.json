@@ -1,0 +1,42 @@
+{
+  "name": "hcm",
+  "version": "0.1.0",
+  "description": "Registro Nacional de Identidad y Salud Animal",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:migrate": "pnpm --filter @hcm/api db:migrate",
+    "db:seed": "pnpm --filter @hcm/api db:seed",
+    "db:reset": "pnpm --filter @hcm/api db:reset",
+    "db:rollback": "pnpm --filter @hcm/api db:rollback",
+    "db:backup": "bash scripts/db-backup.sh",
+    "verify": "bash scripts/verify.sh",
+    "mutation:smoke": "node scripts/mutation-smoke.mjs",
+    "reminders:run": "pnpm --filter @hcm/api reminders:run",
+    "trabajadores:empaquetar": "pnpm --filter @hcm/api trabajadores:empaquetar",
+    "proyeccion:reconstruir": "pnpm --filter @hcm/api proyeccion:reconstruir"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "eslint": "^9",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "shell-quote": ">=1.11.0",
+      "fast-uri@>=3.0.0 <3.1.8": "^3.1.8",
+      "fast-uri@>=4.0.0 <4.1.5": "^4.1.5"
+    }
+  }
+}

@@ -1,0 +1,80 @@
+# ---- Dependencias ----
+node_modules/
+.pnpm-store/
+.yarn/
+jspm_packages/
+
+# ---- Build ----
+dist/
+
+# ---- StoragePort local (apps/api) ----
+storage/
+build/
+out/
+.vite/
+*.tsbuildinfo
+.turbo/
+
+# ---- Entorno y secretos ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials
+secrets.json
+
+# ---- Terraform ----
+.terraform/
+.terraform.lock.hcl.bak
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+backend.hcl
+!backend.example.hcl
+
+# ---- Ansible ----
+*.retry
+ansible/inventory/hosts.local
+ansible/vault_pass.txt
+
+# ---- documentación del proyecto Code ----
+.documentación del proyecto/
+.documentación del proyecto/settings.local.json
+documentación del proyecto.local.md
+.mcp.json
+*.local.json
+
+# ---- Logs y cobertura ----
+*.log
+npm-debug.log*
+pnpm-debug.log*
+logs/
+coverage/
+.nyc_output/
+
+# ---- Pruebas de carga ----
+load-tests/results/
+*.k6-summary.json
+
+# ---- Sistema y editor ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+# ---- Respaldos de base de datos ----
+backups/
