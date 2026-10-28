@@ -1,0 +1,82 @@
+x-api-env: &api-env
+  DATABASE_URL: postgresql://hcm:hcm@db:5432/hcm
+  JWT_SECRET: ${JWT_SECRET}
+  DOC_ENCRYPTION_KEY: ${DOC_ENCRYPTION_KEY}
+  DOC_HMAC_PEPPER: ${DOC_HMAC_PEPPER}
+  OCR_ENABLED: ${OCR_ENABLED:-false}
+  PORT: "3000"
+  # URL con la que el navegador llega a este API (para las URLs de archivos). Para probar
+  # desde otro dispositivo de la red: API_PUBLIC_URL=http://<IP-de-tu-PC>:3000
+  API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:3000}
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: hcm
+      POSTGRES_PASSWORD: hcm
+      POSTGRES_DB: hcm
+    ports:
+      # 5433 en el host: evita chocar con un Postgres nativo en el 5432
+      # (el que usa el flujo sin Docker de documentación del proyecto sección 13).
+      - "5433:5432"
+    volumes:
+      - hcm-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hcm -d hcm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Corre las migraciones de Drizzle y termina. `api` no arranca hasta que
+  # este servicio sale con código 0 (ninguna tabla nueva se aplica a mano,
+  # sección 9).
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["pnpm", "run", "db:migrate"]
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Siembra 3 dueños/5 mascotas/20 eventos. Es idempotente (revisa si ya hay
+  # datos antes de insertar), así que un `docker compose up` repetido no falla.
+  seed:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["pnpm", "run", "db:seed"]
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment: *api-env
+    ports:
+      - "3000:3000"
+    volumes:
+      - hcm-storage:/app/apps/api/storage
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${API_PUBLIC_URL:-http://localhost:3000}
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  hcm-db-data:
+  hcm-storage:
