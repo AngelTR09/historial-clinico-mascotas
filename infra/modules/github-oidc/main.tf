@@ -127,6 +127,7 @@ resource "aws_iam_role" "apply" {
 }
 
 resource "aws_iam_role_policy_attachment" "apply" {
+  #checkov:skip=CKV_AWS_274:Terraform crea roles y políticas IAM; el límite es la condición de la rama main, la protección de rama y la aprobación manual, no la política
   role       = aws_iam_role.apply.name
   policy_arn = var.arn_politica_apply
 }

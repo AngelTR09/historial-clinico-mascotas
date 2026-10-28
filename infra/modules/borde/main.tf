@@ -18,6 +18,10 @@ locals {
 # aws-s3-enable-bucket-logging: Sin logs de acceso: CloudFront es el único lector y el contenido es público.
 #tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "web" {
+  #checkov:skip=CKV_AWS_18:Sin logs de acceso: CloudFront es el unico lector y sirve contenido publico
+  #checkov:skip=CKV_AWS_144:Sin replicacion: el build se regenera desde el repositorio
+  #checkov:skip=CKV_AWS_145:SSE-S3 basta: son archivos estaticos publicos; con KMS el OAC exigiria permisos extra en la clave
+  #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: ningun consumidor
   bucket = "${var.nombre_proyecto}-web-${data.aws_caller_identity.actual.account_id}"
 
   tags = var.etiquetas_comunes
@@ -143,6 +147,14 @@ resource "aws_cloudfront_cache_policy" "ficha_publica" {
 #tfsec:ignore:aws-cloudfront-use-secure-tls-policy
 #tfsec:ignore:aws-cloudfront-enable-logging
 resource "aws_cloudfront_distribution" "principal" {
+  #checkov:skip=CKV2_AWS_42:Sin dominio propio la distribucion usa el certificado por defecto de CloudFront
+  #checkov:skip=CKV2_AWS_47:WAF diferido: cuando se conecte arn_waf se le agregan las reglas gestionadas
+  #checkov:skip=CKV_AWS_68:WAF diferido: se enciende solo en la demostracion de seguridad (costo por regla); la variable arn_waf lo conecta
+  #checkov:skip=CKV_AWS_86:Sin logs de acceso de CloudFront en el PMV: costo y mantenimiento sin RNF que los pida
+  #checkov:skip=CKV_AWS_174:Sin dominio propio la distribucion usa el certificado por defecto, que no permite fijar TLS minimo
+  #checkov:skip=CKV2_AWS_32:Las cabeceras de seguridad se aplican con la politica gestionada SecurityHeadersPolicy
+  #checkov:skip=CKV_AWS_310:Sin origen de respaldo: la disponibilidad la da el ALB en dos zonas
+  #checkov:skip=CKV_AWS_374:Sin restriccion geografica: los dueños pueden consultar desde cualquier pais
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "${var.nombre_proyecto}: web y API"

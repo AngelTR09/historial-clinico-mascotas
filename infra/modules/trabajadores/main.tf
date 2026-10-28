@@ -133,6 +133,10 @@ resource "aws_iam_role_policy" "funcion" {
 # aws-lambda-enable-tracing: Sin X-Ray: diferido, ningún RNF del PDF lo exige (documentación del proyecto §18).
 #tfsec:ignore:aws-lambda-enable-tracing
 resource "aws_lambda_function" "funcion" {
+  #checkov:skip=CKV_AWS_50:Sin X-Ray: diferido, ningun RNF lo exige
+  #checkov:skip=CKV_AWS_115:Sin concurrencia reservada: una cuenta nueva solo tiene 10 de concurrencia y reservar impide crear la funcion; el limite real es maximum_concurrency de la fuente SQS (protege a RDS)
+  #checkov:skip=CKV_AWS_117:El notificador solo habla con SES y SQS: meterlo en la VPC exigiria endpoints de interfaz mas
+  #checkov:skip=CKV_AWS_272:Sin firma de codigo: el paquete lo construye y sube el pipeline de GitHub Actions
   for_each = local.funciones
 
   function_name = "${var.nombre_proyecto}-${replace(each.key, "_", "-")}"
