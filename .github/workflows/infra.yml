@@ -1,0 +1,145 @@
+name: Infra
+
+# Compuertas de calidad de Terraform. Se separa de ci.yml para que los cambios de infra/
+# tengan su propio historial y su propio terraform plan legible.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: Calidad (sin AWS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive infra
+
+      # Valida cada entorno y corre las pruebas de los módulos con proveedor simulado:
+      # no hace falta cuenta ni credenciales de AWS.
+      - name: terraform validate de los entornos
+        run: |
+          for entorno in infra/envs/*/; do
+            terraform -chdir="$entorno" init -backend=false -input=false
+            terraform -chdir="$entorno" validate
+          done
+
+      - name: terraform test de los módulos
+        run: |
+          for modulo in infra/modules/*/; do
+            if [ -d "$modulo/tests" ]; then
+              terraform -chdir="$modulo" init -backend=false -input=false
+              terraform -chdir="$modulo" test
+            fi
+          done
+
+      - uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6 # v1.0.3
+        with:
+          working_directory: infra
+
+      - uses: bridgecrewio/checkov-action@c3e106d5f8f4253a6de5110efb41a080f83db294 # v12
+        with:
+          directory: infra
+          framework: terraform
+          quiet: true
+
+      - uses: open-policy-agent/setup-opa@b2b258e089860efaadaaf71bf6e3aecb4a3eeff1 # v2.4.0
+        with:
+          version: 0.61.0
+
+      - name: Pruebas de las políticas OPA
+        run: |
+          opa fmt --list --fail infra/policies
+          opa check --strict infra/policies
+          opa test infra/policies -v
+
+  # El plan solo corre si el repositorio ya tiene configurado el rol OIDC de solo
+  # lectura (variable AWS_PLAN_ROLE_ARN). Mientras no exista cuenta de AWS, este job se
+  # omite y la compuerta de arriba es la única que corre.
+  plan:
+    name: Plan (${{ matrix.entorno }})
+    needs: calidad
+    if: ${{ github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        entorno: [dev, prod]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      # El provider lee el zip de cada Lambda al planear: se crean paquetes vacios.
+      - name: Paquetes vacios de las Lambdas
+        run: |
+          mkdir -p workers/dist
+          echo "exports.handler = async () => {};" > /tmp/index.js
+          for f in proyector normalizador recordatorios notificador; do
+            zip -j "workers/dist/$f.zip" /tmp/index.js
+          done
+
+      - name: terraform plan
+        working-directory: infra/envs/${{ matrix.entorno }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${{ vars.AWS_TFSTATE_BUCKET }}" \
+            -backend-config="key=${{ matrix.entorno }}/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="dynamodb_table=${{ vars.AWS_TFLOCK_TABLE }}" \
+            -backend-config="encrypt=true"
+          terraform plan -input=false -lock-timeout=60s -var="owner=${{ github.actor }}" -var='correos_alerta=["plan@example.com"]' -var='correo_remitente=plan@example.com' -out=tfplan
+          terraform show -json tfplan > tfplan.json
+
+      # Las políticas OPA corren sobre el plan: etiquetas, servicios prohibidos y cifrado.
+      - name: Políticas OPA sobre el plan
+        run: |
+          docker run --rm -v "$PWD:/proyecto" -w /proyecto openpolicyagent/conftest:v0.56.0 \
+            test --all-namespaces --policy infra/policies infra/envs/${{ matrix.entorno }}/tfplan.json
+
+      # Infracost comenta el costo mensual estimado en el PR. Opcional: se activa con la
+      # variable INFRACOST_HABILITADO=true y el secreto INFRACOST_API_KEY.
+      - uses: infracost/actions/setup@e9d6e6cd65e168e76b0de50ff9957d2fe8bb1832 # v3
+        if: ${{ vars.INFRACOST_HABILITADO == 'true' }}
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Costo estimado
+        if: ${{ vars.INFRACOST_HABILITADO == 'true' }}
+        run: |
+          infracost breakdown --path infra/envs/${{ matrix.entorno }}/tfplan.json --format json --out-file infracost.json
+          infracost comment github --path infracost.json \
+            --repo "$GITHUB_REPOSITORY" --pull-request "${{ github.event.pull_request.number }}" \
+            --github-token "${{ github.token }}" --behavior update

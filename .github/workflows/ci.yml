@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  # Compuerta reutilizable: el futuro workflow de despliegue (fase AWS) la invoca con
+  # `uses: ./.github/workflows/ci.yml` y `needs:` para que nada se publique sin pasarla.
+  workflow_call: {}
+
+# Principio de minimo privilegio: el CI solo lee el repo.
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nunca toca AWS ni Terraform: solo corre la suite de tests contra un
+# Postgres efimero del propio runner. El proyecto es JavaScript puro: en lugar de typecheck corre ESLint.
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: hcm
+          POSTGRES_PASSWORD: hcm
+          POSTGRES_DB: hcm_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hcm"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://hcm:hcm@localhost:5432/hcm_ci
+      JWT_SECRET: ci-placeholder-jwt-secret
+      # Clave AES-256 valida (32 bytes en base64), generada solo para CI.
+      # No es un secreto real: la base de datos del job vive y muere con el run.
+      DOC_ENCRYPTION_KEY: UIubkevOHumXhYymi1hRQ3Ysmz7yspMe8gIQ3kwAZx8=
+      DOC_HMAC_PEPPER: ci-placeholder-pepper
+      STORAGE_LOCAL_PATH: ./storage
+      OCR_ENABLED: "false"
+      PORT: "3000"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          # Las pruebas de la web usan jsdom 30, que exige Node >= 22.22. Los Dockerfiles siguen en Node 20: no corren pruebas.
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Migraciones - el esquema de Drizzle coincide con las migraciones versionadas
+        run: |
+          cd apps/api
+          pnpm exec drizzle-kit generate
+          git diff --exit-code --stat -- migrations
+          test -z "$(git status --porcelain -- migrations)" || { echo "Falta una migracion para el cambio de schema.js"; exit 1; }
+
+      - name: Aplicar migraciones y sembrar catalogo de vacunas
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
+
+      - run: pnpm lint
+
+      # Incluye los tests de migraciones (subir, bajar, subir) y el contrato web <-> API.
+      - run: pnpm -r test
+
+      - name: Build del frontend
+        run: pnpm build
+
+      - name: Auditoria de dependencias de produccion (alta o critica bloquea)
+        run: pnpm audit --prod --audit-level=high
+
+  # Las imagenes que luego iran a ECS Fargate deben construir; no se publican desde aqui.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir imagen de la API
+        run: docker build -f apps/api/Dockerfile -t hcm-api:ci .
+      - name: Construir imagen del web
+        run: docker build -f apps/web/Dockerfile -t hcm-web:ci .
