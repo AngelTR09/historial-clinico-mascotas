@@ -14,13 +14,20 @@ resource "aws_backup_vault" "principal" {
 resource "aws_backup_plan" "principal" {
   name = "${var.nombre_proyecto}-respaldos"
 
+  # Las reglas son un conjunto: AWS devuelve enable_continuous_backup, recovery_point_tags y cold_storage_after
+  # con su valor vacío (false, {} y 0) y, si el código no los declara, cada plan veía una regla distinta y
+  # mostraba las dos como cambio. Se declaran con esos mismos valores: no cambian el respaldo (0 días de
+  # almacenamiento frío es "sin almacenamiento frío").
   rule {
-    rule_name         = "completo-diario"
-    target_vault_name = aws_backup_vault.principal.name
-    schedule          = "cron(0 6 * * ? *)"
+    rule_name                = "completo-diario"
+    target_vault_name        = aws_backup_vault.principal.name
+    schedule                 = "cron(0 6 * * ? *)"
+    enable_continuous_backup = false
+    recovery_point_tags      = {}
 
     lifecycle {
-      delete_after = var.dias_retencion
+      cold_storage_after = 0
+      delete_after       = var.dias_retencion
     }
   }
 
@@ -28,9 +35,11 @@ resource "aws_backup_plan" "principal" {
     rule_name                = "continuo-pitr"
     target_vault_name        = aws_backup_vault.principal.name
     enable_continuous_backup = true
+    recovery_point_tags      = {}
 
     lifecycle {
-      delete_after = var.dias_retencion
+      cold_storage_after = 0
+      delete_after       = var.dias_retencion
     }
   }
 
