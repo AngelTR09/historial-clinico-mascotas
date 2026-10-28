@@ -85,7 +85,8 @@ describe("registrarMascotaPorVeterinario", () => {
         const reclamo = await registrarDueno(ports, { ...datos, correo: correo.toUpperCase() });
         expect(reclamo).toEqual({ idDueno, requiereVerificacion: true });
         const [dueno] = await db.select().from(duenos).where(eq(duenos.id, idDueno));
-        expect(dueno.contrasenaHash).toBeTruthy();
+        // La contraseña elegida espera al código: la cuenta sigue sin contraseña hasta verificarlo.
+        expect(dueno.contrasenaHash).toBeNull();
         expect(dueno.correoVerificadoEn).toBeNull();
     });
 });

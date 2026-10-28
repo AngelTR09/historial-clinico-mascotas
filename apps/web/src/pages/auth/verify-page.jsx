@@ -14,7 +14,7 @@ export function PaginaVerificacionCorreo() {
     const navigate = useNavigate();
     const [codigo, setCodigo] = useState("");
     const verificar = useMutation({
-        mutationFn: () => api.post("/auth/verify", { rol: state.rol, correo: state.correo, codigo }, { token: null }),
+        mutationFn: () => api.post("/auth/verify", { rol: state.rol, correo: state.correo, codigo, contrasena: state.contrasena }, { token: null }),
         onSuccess: ({ token }) => {
             if (state.rol === "veterinario") {
                 establecerTokenVeterinario(token);

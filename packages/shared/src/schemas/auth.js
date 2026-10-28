@@ -12,11 +12,15 @@ export const esquemaInicioSesion = z.object({
     contrasena: z.string().min(1).max(128),
 });
 
-/** Código de 6 dígitos que llegó al correo al registrarse. */
+/**
+ * Código de 6 dígitos que llegó al correo al registrarse. `contrasena` solo la exige el servidor cuando la
+ * cuenta la creó un veterinario y el dueño la está reclamando: es la que eligió en ese registro.
+ */
 export const esquemaVerificacionCorreo = z.object({
     rol: rolSesionSchema,
     correo,
     codigo: z.string().regex(/^\d{6}$/, "El código tiene 6 dígitos"),
+    contrasena: z.string().min(1).max(128).optional(),
 });
 
 export const esquemaReenvioCodigo = z.object({

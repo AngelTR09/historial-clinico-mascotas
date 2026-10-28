@@ -6,9 +6,10 @@ import { construirPuertosLocales } from "../../container.js";
 import { db } from "../../db/client.js";
 import { duenos, verificacionesCorreo, veterinarios } from "../../db/schema.js";
 import { ErrorConflicto, ErrorNoAutorizado, ErrorProhibido } from "../../domain/errors.js";
-import { crearRastreadorFixtures, limpiarFixtures } from "../../test-support/fixtures.js";
+import { crearRastreadorFixtures, crearVeterinarioAislado, limpiarFixtures } from "../../test-support/fixtures.js";
 import { iniciarSesion, reenviarCodigo, verificarCorreo } from "./account-auth.js";
 import { registrarDueno } from "./register-owner.js";
+import { registrarMascotaPorVeterinario } from "../vets/register-pet-by-vet.js";
 import { registrarVeterinario } from "./register-vet.js";
 
 const CONTRASENA = "Clave-Segura-2026!";
@@ -214,5 +215,92 @@ describe("cuenta profesional", () => {
         expect(await ports.autenticacion.verifyVetToken(sesion.token)).toEqual({ idVeterinario: resultado.veterinario.id });
         const [fila] = await db.select().from(veterinarios).where(eq(veterinarios.id, resultado.veterinario.id));
         expect(fila.correoVerificadoEn).not.toBeNull();
+    });
+});
+
+describe("reclamo de una cuenta creada por un veterinario", () => {
+    const CONTRASENA_AJENA = "Otra-Clave-Distinta-9!";
+    const datosReclamo = (documento, correo, contrasena) => ({ tipoDocumento: "DNI", numeroDocumento: documento, nombres: "Rosa", apellidos: "Paredes", correo, contrasena, aceptaTratamientoDatos: true });
+
+    /** Un veterinario aprobado registra a la mascota y al dueño sin contraseña. */
+    async function duenoCreadoPorVeterinario() {
+        const vet = await crearVeterinarioAislado(rastreador, "aprobado");
+        const documento = String(Math.floor(10000000 + Math.random() * 89999999));
+        const correo = `rosa-${randomUUID()}@example.com`;
+        const ports = { notificacion: { notify: async () => { } }, autenticacion: { issueVetPetAccessToken: async () => ({ token: "t", expiraEn: "2030-01-01T00:00:00.000Z" }) } };
+        const resultado = await registrarMascotaPorVeterinario(ports, vet.id, {
+            dueno: { tipoDocumento: "DNI", numeroDocumento: documento, nombres: "Rosa", apellidos: "Paredes", correo, aceptaTratamientoDatos: true },
+            mascota: { nombre: "Canela", especie: "perro" },
+        });
+        rastreador.petIds.push(resultado.idMascota);
+        const [dueno] = await db.select().from(duenos).where(eq(duenos.correo, correo));
+        rastreador.ownerIds.push(dueno.id);
+        return { documento, correo, idDueno: dueno.id };
+    }
+
+    it("reclamar no toca la cuenta: sigue sin contraseña y la elegida espera junto al código", async () => {
+        const { ports } = puertos();
+        const { documento, correo, idDueno } = await duenoCreadoPorVeterinario();
+
+        await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA_AJENA));
+
+        const [dueno] = await db.select().from(duenos).where(eq(duenos.id, idDueno));
+        expect(dueno.contrasenaHash).toBeNull();
+        const [verificacion] = await db.select().from(verificacionesCorreo).where(eq(verificacionesCorreo.idDueno, idDueno));
+        expect(verificacion.contrasenaPendienteHash).toBeTruthy();
+        expect(verificacion.contrasenaPendienteHash).not.toContain(CONTRASENA_AJENA);
+    });
+
+    it("quien reclama sin poder verificar no bloquea al dueño real: este reclama después y activa su cuenta", async () => {
+        const { ports, ultimoCodigo } = puertos();
+        const { documento, correo, idDueno } = await duenoCreadoPorVeterinario();
+
+        await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA_AJENA));
+        const reclamoDelDueno = await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA));
+        expect(reclamoDelDueno).toEqual({ idDueno, requiereVerificacion: true });
+
+        const { token } = await verificarCorreo(ports, { rol: "dueno", correo, codigo: ultimoCodigo(), contrasena: CONTRASENA });
+        expect(await ports.autenticacion.verifyOwnerToken(token)).toEqual({ idDueno });
+        await expect(iniciarSesion(ports, { rol: "dueno", correo, contrasena: CONTRASENA })).resolves.toHaveProperty("token");
+    });
+
+    it("el código que llega al buzón del dueño no activa la cuenta con la contraseña de otra persona", async () => {
+        const { ports, ultimoCodigo } = puertos();
+        const { documento, correo, idDueno } = await duenoCreadoPorVeterinario();
+        // Alguien que conoce el documento y el correo inicia el reclamo con su contraseña; el código va al dueño.
+        await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA_AJENA));
+
+        // El dueño teclea el código con su propia contraseña, o sin ninguna: no activa nada.
+        await expect(verificarCorreo(ports, { rol: "dueno", correo, codigo: ultimoCodigo(), contrasena: CONTRASENA })).rejects.toThrow("Código inválido o vencido");
+        await expect(verificarCorreo(ports, { rol: "dueno", correo, codigo: ultimoCodigo() })).rejects.toThrow("Código inválido o vencido");
+        const [dueno] = await db.select().from(duenos).where(eq(duenos.id, idDueno));
+        expect(dueno.contrasenaHash).toBeNull();
+        expect(dueno.correoVerificadoEn).toBeNull();
+    });
+
+    it("un reclamo nuevo deja sin efecto el código del anterior", async () => {
+        const { ports, ultimoCodigo } = puertos();
+        const { documento, correo } = await duenoCreadoPorVeterinario();
+        await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA_AJENA));
+        const codigoViejo = ultimoCodigo();
+        await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA));
+
+        // Los códigos al azar podrían coincidir una vez entre un millón; la prueba lo descarta.
+        if (codigoViejo !== ultimoCodigo()) {
+            await expect(verificarCorreo(ports, { rol: "dueno", correo, codigo: codigoViejo, contrasena: CONTRASENA_AJENA })).rejects.toThrow(ErrorNoAutorizado);
+        }
+    });
+
+    it("reenviar el código conserva la contraseña pendiente", async () => {
+        const { ports, ultimoCodigo, enviados } = puertos();
+        const { documento, correo, idDueno } = await duenoCreadoPorVeterinario();
+        await registrarDueno(ports, datosReclamo(documento, correo, CONTRASENA));
+        await db.update(verificacionesCorreo).set({ creadoEn: new Date(Date.now() - 120_000) }).where(eq(verificacionesCorreo.idDueno, idDueno));
+
+        await reenviarCodigo(ports, { rol: "dueno", correo });
+
+        expect(enviados.filter((n) => n.template === "codigo_verificacion")).toHaveLength(2);
+        await expect(verificarCorreo(ports, { rol: "dueno", correo, codigo: ultimoCodigo(), contrasena: CONTRASENA_AJENA })).rejects.toThrow(ErrorNoAutorizado);
+        await expect(verificarCorreo(ports, { rol: "dueno", correo, codigo: ultimoCodigo(), contrasena: CONTRASENA })).resolves.toHaveProperty("token");
     });
 });

@@ -20,7 +20,7 @@ export function PaginaRegistro() {
     const mutation = useMutation({
         mutationFn: ({ confirmarContrasena: _confirmacion, ...input }) => api.post("/owners", input),
         // La cuenta nace inactiva: el siguiente paso es el código que llega al correo.
-        onSuccess: (_datos, valores) => navigate("/verificar", { state: { rol: "dueno", correo: valores.correo.trim().toLowerCase() } }),
+        onSuccess: (_datos, valores) => navigate("/verificar", { state: { rol: "dueno", correo: valores.correo.trim().toLowerCase(), contrasena: valores.contrasena } }),
     });
     return (<PlantillaAutenticacion icono={UserPlus} titulo="Registro de dueño" subtitulo="Crea tu cuenta para empezar a registrar el historial de salud de tus mascotas." pie={<div className="flex flex-col items-center gap-1">
           <Link to="/login" className="text-sm text-ink-soft hover:text-ink">¿Ya tienes cuenta? Inicia sesión</Link>
