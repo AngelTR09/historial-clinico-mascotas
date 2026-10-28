@@ -132,12 +132,10 @@ pnpm verify          # lockfile, lint, pruebas, build y auditoría de dependenci
 ├── packages/shared/    esquemas zod: contrato único entre web y API
 ├── infra/              Terraform (módulos, entornos y políticas OPA; sin aplicar)
 ├── scripts/            verificación, respaldo y pruebas de mutación
-├── docker-compose.yml  db + migrate + seed + api + web
-└── PLAN-MIGRACION-AWS.md
+└── docker-compose.yml  db + migrate + seed + api + web
 ```
 
 El despliegue a AWS todavía no se ejecuta: el Terraform de `infra/` está escrito y validado, pero no aplicado.
-Ver `PLAN-MIGRACION-AWS.md`.
 
 ## Avance del código
 
@@ -149,7 +147,7 @@ El código se sube por piezas, cada una en su Pull Request. Hasta ahora:
 - **Puertos y adaptadores locales** (`apps/api/src/ports`, `adapters/local`): todo servicio externo detrás de una interfaz.
 - **Cuentas y login**: dueños y veterinarios, inicio de sesión con código de 6 dígitos por correo.
 - **Adaptadores AWS** (`adapters/aws`): S3, SQS, SES, DynamoDB y Secrets Manager, activos con `PROVEEDOR=aws`.
-- **Terraform base** (`infra/`): bootstrap, presupuesto, OIDC de GitHub, red y seguridad. Ver `PLAN-MIGRACION-AWS.md`.
+- **Terraform base** (`infra/`): bootstrap, presupuesto, OIDC de GitHub, red y seguridad.
 - **Mascotas y ficha pública**: alta de mascota, camadas y consulta pública por QR sin datos personales.
 - **Historial clínico**: eventos de salud, registro directo del veterinario y evidencias adjuntas.
 - **Transferencias y recordatorios**: transferencia atómica, recordatorios de vacunas, workers y la app HTTP completa.
