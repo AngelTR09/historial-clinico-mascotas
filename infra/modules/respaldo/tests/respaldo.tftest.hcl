@@ -55,3 +55,17 @@ run "dev_puede_forzar_el_borrado" {
     error_message = "Con forzar_borrado el destroy debe poder borrar con contenido (dev)."
   }
 }
+
+run "las_reglas_declaran_los_valores_vacios_que_aws_devuelve" {
+  command = apply
+
+  assert {
+    condition     = alltrue([for r in aws_backup_plan.principal.rule : length(r.recovery_point_tags) == 0 && r.lifecycle[0].cold_storage_after == 0])
+    error_message = "Sin declarar recovery_point_tags y cold_storage_after, cada plan veria las reglas como distintas."
+  }
+
+  assert {
+    condition     = length([for r in aws_backup_plan.principal.rule : r if r.enable_continuous_backup == false]) == 1
+    error_message = "El respaldo completo diario declara enable_continuous_backup = false de forma explicita."
+  }
+}

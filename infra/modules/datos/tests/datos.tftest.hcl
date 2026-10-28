@@ -69,3 +69,12 @@ run "dev_puede_forzar_el_borrado" {
     error_message = "Con forzar_borrado el destroy debe poder borrar con contenido (dev)."
   }
 }
+
+run "el_parametro_de_ssl_usa_el_metodo_que_aws_informa" {
+  command = plan
+
+  assert {
+    condition     = one([for p in aws_db_parameter_group.postgres.parameter : p if p.name == "rds.force_ssl"]).apply_method == "pending-reboot" && one([for p in aws_db_parameter_group.postgres.parameter : p if p.name == "rds.force_ssl"]).value == "1"
+    error_message = "rds.force_ssl debe seguir en 1, con el apply_method que AWS devuelve (pending-reboot) para no mostrar cambios falsos."
+  }
+}

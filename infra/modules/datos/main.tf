@@ -21,6 +21,9 @@ resource "aws_db_parameter_group" "postgres" {
   parameter {
     name  = "rds.force_ssl"
     value = "1"
+    # AWS lo devuelve como pending-reboot; declarar immediate (el valor por defecto) hacía que cada plan
+    # mostrara un cambio que no era tal. Con el valor que AWS informa, el plan queda sin diferencias.
+    apply_method = "pending-reboot"
   }
 
   tags = var.etiquetas_comunes
