@@ -1,0 +1,22 @@
+{
+  "name": "@hcm/shared",
+  "version": "0.1.0",
+  "description": "Esquemas zod compartidos entre apps/web, apps/api y workers",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint src --max-warnings=0"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.4"
+  }
+}
