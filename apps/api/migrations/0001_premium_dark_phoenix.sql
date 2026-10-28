@@ -1,0 +1,1 @@
+ALTER TABLE "pets" ADD COLUMN "name" text NOT NULL;

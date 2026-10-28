@@ -1,0 +1,49 @@
+{
+  "name": "@hcm/api",
+  "version": "0.1.0",
+  "description": "API HTTP de Historial Clínico Mascotas (Fastify + Drizzle)",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "main": "./src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "vitest run",
+    "lint": "eslint src --max-warnings=0",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node src/db/migrate.js",
+    "db:rollback": "node src/db/rollback.js",
+    "db:check": "drizzle-kit check",
+    "db:seed": "node src/db/seed.js",
+    "db:reset": "node src/db/reset.js",
+    "db:aprobar-vet": "node src/db/approve-vet.js",
+    "reminders:run": "node src/workers/run-reminders-once.js",
+    "trabajadores:empaquetar": "node scripts/empaquetar-trabajadores.js",
+    "proyeccion:reconstruir": "node src/workers/run-projection-rebuild-once.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1155.0",
+    "@aws-sdk/client-s3": "^3.1155.0",
+    "@aws-sdk/client-secrets-manager": "^3.1158.0",
+    "@aws-sdk/client-sesv2": "^3.1158.0",
+    "@aws-sdk/client-sns": "^3.1155.0",
+    "@aws-sdk/client-sqs": "^3.1155.0",
+    "@aws-sdk/lib-dynamodb": "^3.1155.0",
+    "@aws-sdk/s3-request-presigner": "^3.1155.0",
+    "@fastify/cors": "^10.0.2",
+    "@hcm/shared": "workspace:*",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.5",
+    "jose": "^5.9.6",
+    "pino": "^9.6.0",
+    "postgres": "^3.4.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.1",
+    "esbuild": "^0.28.2",
+    "vitest": "^3.0.4"
+  }
+}
