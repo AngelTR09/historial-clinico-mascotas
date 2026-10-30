@@ -2,13 +2,10 @@ name: Infra
 
 # Compuertas de calidad de Terraform. Se separa de ci.yml para que los cambios de infra/
 # tengan su propio historial y su propio terraform plan legible.
+# Solo corre en pull requests: el plan existe únicamente ahí, y un push a main lo dejaba omitido con el nombre
+# de la matriz sin resolver. El despliegue real lo hace deploy.yml desde development.
 on:
   pull_request:
-    branches: [main]
-    paths:
-      - "infra/**"
-      - ".github/workflows/infra.yml"
-  push:
     branches: [main]
     paths:
       - "infra/**"
