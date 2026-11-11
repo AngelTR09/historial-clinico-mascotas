@@ -1,22 +1,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { esquemaCreacionCamada, esquemaCreacionMascota } from "@hcm/shared";
-import { AlertTriangle, ArrowRightLeft, BellRing, Check, Copy, Download, ExternalLink, Plus, QrCode, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { descargarSvgPlacaQr, generarSvgPlacaQr } from "../../lib/qr-placa";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { api, ErrorApi } from "../../api/client";
 import { AvisoError } from "../../components/ui/error-banner";
 import { EsqueletoLista } from "../../components/ui/list-skeleton";
-import { AvatarMascota } from "../../components/pets/pet-avatar";
 import { SelectorFotoMascota } from "../../components/pets/pet-photo-picker";
 import { EncabezadoPagina } from "../../components/ui/page-header";
 import { prepararFotoMascota, subirFotoMascota } from "../../lib/pet-photo";
+import { claseBoton } from "../../components/ui/boton";
+import { Aviso } from "../../components/ui/aviso";
+import { Panel, PanelCabecera, PanelCuerpo } from "../../components/ui/panel";
+import { TarjetaMascota } from "../../components/pets/pet-card";
+import { EncabezadoSeccion } from "../../components/ui/encabezado-seccion";
+import { entrada } from "../../lib/entrada";
+import { Entrada } from "../../components/ui/campo";
 export function PaginaPanel() {
     const queryClient = useQueryClient();
     const [idMascotaCopiada, setIdMascotaCopiada] = useState(null);
-    const [idQrVisible, setIdQrVisible] = useState(null);
+    // Acordeón: un solo panel abierto en todo el dashboard (el QR o la transferencia de una mascota). Abrir uno cierra el otro.
+    const [panelAbierto, setPanelAbierto] = useState(null);
     async function copiarTokenQr(idMascota, tokenQr) {
         await navigator.clipboard.writeText(tokenQr);
         setIdMascotaCopiada(idMascota);
@@ -28,15 +34,30 @@ export function PaginaPanel() {
         mutationFn: ({ idMascota, estado }) => api.patch(`/pets/${idMascota}/status`, { estado }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pets"] }),
     });
-    const [codigoTransferencia, setCodigoTransferencia] = useState(null);
+    // Un código por mascota: el servidor solo guarda su hash, así que si se pierde de pantalla no se puede volver a ver.
+    const [codigosTransferencia, setCodigosTransferencia] = useState({});
+    const [errorTransferencia, setErrorTransferencia] = useState(null);
     const [transferenciaCopiada, setTransferenciaCopiada] = useState(false);
     const crearTransferencia = useMutation({
-        mutationFn: (idMascota) => api.post("/transfers", { idMascota }),
+        mutationFn: ({ idMascota, reemplazar }) => api.post("/transfers", { idMascota, ...(reemplazar ? { reemplazar: true } : {}) }),
+        onMutate: () => setErrorTransferencia(null),
         onSuccess: (resultado) => {
-            setCodigoTransferencia({ idMascota: resultado.transferencia.idMascota, combinado: `${resultado.transferencia.id}:${resultado.codigo}` });
+            setCodigosTransferencia((previos) => ({ ...previos, [resultado.transferencia.idMascota]: `${resultado.transferencia.id}:${resultado.codigo}` }));
             setTransferenciaCopiada(false);
         },
+        onError: (error, { idMascota }) => setErrorTransferencia({ idMascota, mensaje: error.message, hayPendiente: error.status === 409 }),
     });
+    function alternarTransferencia(idMascota) {
+        if (panelAbierto?.idMascota === idMascota && panelAbierto.tipo === "transferencia") {
+            setPanelAbierto(null);
+            return;
+        }
+        setPanelAbierto({ idMascota, tipo: "transferencia" });
+        // Si el código de esta sesión sigue a mano se vuelve a mostrar; el servidor ya no puede devolverlo.
+        if (!codigosTransferencia[idMascota]) {
+            crearTransferencia.mutate({ idMascota });
+        }
+    }
     async function copiarCodigoTransferencia(combinado) {
         await navigator.clipboard.writeText(combinado);
         setTransferenciaCopiada(true);
@@ -118,130 +139,59 @@ export function PaginaPanel() {
             setTextoMasivo("");
         },
     });
-    return (<div className="min-h-screen bg-paper">
+    return (<div className="min-h-screen bg-canvas">
       <EncabezadoPagina mostrarCerrarSesion/>
-      <main id="contenido" className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
-        <h1 className="mb-6 font-display text-3xl font-semibold text-ink">Mis mascotas</h1>
+      <main id="contenido" className="mx-auto max-w-page px-4 py-6 sm:px-6 sm:py-8">
+        <EncabezadoSeccion sobretitulo="Dueño" titulo="Mis mascotas" descripcion="Expedientes de salud y placas QR de tus mascotas."/>
 
-        {!!consultaRecordatorios.data?.length && (<div className="mb-6 rounded-lg border border-gold/25 bg-gold-tint p-4">
-            <h2 className="mb-2 flex items-center gap-1.5 font-medium text-gold-dark">
-              <BellRing className="h-4 w-4"/> Vacunas y desparasitaciones por vencer
-            </h2>
-            <ul className="space-y-1 text-sm text-gold-dark">
+        {!!consultaRecordatorios.data?.length && (<Aviso variante="info" titulo="Vacunas y desparasitaciones por vencer" className="mb-6">
+            <ul className="space-y-1">
               {consultaRecordatorios.data.map((recordatorio) => (<li key={`${recordatorio.idMascota}-${recordatorio.vacuna}`}>
                   <span className="font-medium">{recordatorio.nombreMascota}</span> · {recordatorio.vacuna} · vence el{" "}
                   {recordatorio.vencimiento}
                 </li>))}
             </ul>
-          </div>)}
+          </Aviso>)}
 
-        <div className="mb-8 space-y-3">
+        <div className="mb-8 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3 [&>:not(article)]:col-span-full">
           {consultaMascotas.isLoading && <EsqueletoLista />}
           {consultaMascotas.isError && (<AvisoError mensaje="No se pudo cargar tu lista de mascotas." alReintentar={() => consultaMascotas.refetch()}/>)}
-          {consultaMascotas.data?.length === 0 && (<div className="rise flex flex-col items-center rounded-xl border border-dashed border-sand-dark bg-paper-raised/60 px-6 py-10 text-center">
-              <img src="/img/vacio-gato.webp" alt="" width="640" height="640" loading="lazy" className="mb-3 h-24 w-24 rounded-full object-cover object-[50%_35%] ring-4 ring-paper-raised shadow-soft"/>
-              <p className="font-display text-lg font-semibold text-ink">Todavía no registraste ninguna mascota.</p>
-              <p className="mt-1 max-w-xs text-sm text-ink-soft">Completa el formulario de abajo para crear su expediente y su placa QR.</p>
+          {consultaMascotas.data?.length === 0 && (<div className="rise flex flex-col items-center rounded-lg border border-dashed border-border-strong bg-surface px-6 py-12 text-center">
+              <img src="/img/vacio-gato.webp" alt="" width="640" height="640" loading="lazy" className="mb-3 h-24 w-24 rounded-full object-cover object-[50%_35%] ring-4 ring-surface shadow-sm"/>
+              <p className="font-display text-2xl font-semibold text-ink">Aún no hay mascotas</p>
+              <p className="mt-1 max-w-xs text-sm text-ink-soft">Registra a tu primera mascota con el formulario de abajo para crear su expediente y su placa QR.</p>
             </div>)}
-          {consultaMascotas.data?.map((mascota, indice) => (<div key={mascota.id} style={{ "--i": indice }} className="lift rise overflow-hidden rounded-xl border border-sand bg-paper-raised">
-              <div className="flex">
-                {/* Talón tipo carnet: el codigoPublico es el número de un documento de identidad real. */}
-                <div className="flex w-16 shrink-0 flex-col items-center justify-center gap-1 border-r border-dashed border-sand-dark bg-pine-tint px-2 py-3 sm:w-20">
-                  <AvatarMascota urlFoto={mascota.urlFoto} nombre={mascota.nombre} tamano="sm"/>
-                  <span className="text-center font-mono text-[10px] leading-tight text-pine-dark">{mascota.codigoPublico}</span>
-                </div>
-
-                <div className="flex flex-1 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-display text-lg font-semibold text-ink">
-                      {mascota.nombre}
-                      {mascota.estado === "extraviada" && (<span className="ml-2 inline-flex items-center gap-1 rounded-full bg-clay-tint px-2 py-0.5 align-middle text-xs font-medium text-clay-dark">
-                          <AlertTriangle className="h-3 w-3"/> Extraviada
-                        </span>)}
-                    </p>
-                    <p className="text-sm capitalize text-ink-soft">{mascota.especie}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={() => actualizarEstado.mutate({ idMascota: mascota.id, estado: mascota.estado === "extraviada" ? "activa" : "extraviada" })} disabled={actualizarEstado.isPending} className={`flex min-h-11 items-center gap-1 whitespace-nowrap rounded-md border px-3 text-sm font-medium disabled:opacity-50 ${mascota.estado === "extraviada"
-                ? "border-pine/40 text-pine hover:bg-pine-tint"
-                : "border-clay/40 text-clay-dark hover:bg-clay-tint"}`}>
-                      <AlertTriangle className="h-4 w-4"/>
-                      {mascota.estado === "extraviada" ? "Marcar recuperada" : "Reportar extraviada"}
-                    </button>
-
-                    <div className="flex items-center gap-1 rounded-md border border-sand-dark p-1">
-                      <button type="button" onClick={() => copiarTokenQr(mascota.id, mascota.tokenQr)} title="Copiar código QR (para que un veterinario lo escanee o pegue en su panel)" className="flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-paper hover:text-ink">
-                        {idMascotaCopiada === mascota.id ? <Check className="h-4 w-4"/> : <Copy className="h-4 w-4"/>}
-                      </button>
-                      <button type="button" onClick={() => setIdQrVisible(idQrVisible === mascota.id ? null : mascota.id)} aria-expanded={idQrVisible === mascota.id} title="Ver placa QR" aria-label={`Ver placa QR de ${mascota.nombre}`} className={`flex h-11 w-11 items-center justify-center rounded hover:bg-paper hover:text-ink ${idQrVisible === mascota.id ? "bg-pine-tint text-pine-dark" : "text-ink-soft"}`}>
-                        <QrCode className="h-4 w-4"/>
-                      </button>
-                      <button type="button" onClick={() => descargarSvgPlacaQr(`${window.location.origin}/p/${mascota.tokenQr}`, `placa-qr-${mascota.nombre}`)} title="Descargar la placa QR en SVG, lista para grabar con láser" aria-label={`Descargar placa QR de ${mascota.nombre}`} className="flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-paper hover:text-ink">
-                        <Download className="h-4 w-4"/>
-                      </button>
-                      <Link to={`/p/${mascota.tokenQr}`} target="_blank" title="Abrir ficha pública" aria-label={`Abrir ficha pública de ${mascota.nombre}`} className="flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-paper hover:text-ink">
-                        <ExternalLink className="h-4 w-4"/>
-                      </Link>
-                      <button type="button" onClick={() => crearTransferencia.mutate(mascota.id)} disabled={crearTransferencia.isPending} title="Transferir a otro dueño" className="flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-paper hover:text-ink disabled:opacity-50">
-                        <ArrowRightLeft className="h-4 w-4"/>
-                      </button>
-                    </div>
-
-                    <Link to={`/pets/${mascota.id}`} className="flex min-h-11 items-center whitespace-nowrap rounded-md bg-ink px-3 text-sm font-medium text-white hover:bg-ink/85">
-                      Ver historial
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {idQrVisible === mascota.id && (<div className="flex flex-col items-center gap-3 border-t border-sand bg-white p-4 sm:flex-row sm:items-center sm:gap-5">
-                  <img src={`data:image/svg+xml;utf8,${encodeURIComponent(generarSvgPlacaQr(`${window.location.origin}/p/${mascota.tokenQr}`))}`} alt={`Código QR de la placa de ${mascota.nombre}`} width="160" height="160" className="h-40 w-40 shrink-0 rounded border border-sand"/>
-                  <div className="text-center text-sm text-ink-soft sm:text-left">
-                    <p className="font-medium text-ink">Placa QR de {mascota.nombre}</p>
-                    <p className="mt-1">Muéstrala al veterinario para que abra el expediente. No contiene tus datos ni el código de identificación.</p>
-                    <button type="button" onClick={() => descargarSvgPlacaQr(`${window.location.origin}/p/${mascota.tokenQr}`, `placa-qr-${mascota.nombre}`)} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-ink px-3 text-sm font-medium text-white hover:bg-ink/85">
-                      <Download className="h-4 w-4"/> Descargar para láser (SVG)
-                    </button>
-                  </div>
-                </div>)}
-
-              {codigoTransferencia?.idMascota === mascota.id && (<div className="border-t border-sand bg-gold-tint p-3 text-sm text-gold-dark">
-                  <p className="mb-2">
-                    Comparte este código con el nuevo dueño — solo se muestra una vez y vence en 24 horas. Lo canjea desde su
-                    propia cuenta en &quot;Tengo un código de transferencia&quot;.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 truncate rounded bg-paper-raised px-2 py-1 font-mono text-xs">{codigoTransferencia.combinado}</code>
-                    <button type="button" onClick={() => copiarCodigoTransferencia(codigoTransferencia.combinado)} className="flex min-h-9 items-center gap-1 whitespace-nowrap text-gold-dark underline hover:no-underline">
-                      {transferenciaCopiada ? <Check className="h-3.5 w-3.5"/> : <Copy className="h-3.5 w-3.5"/>}
-                      {transferenciaCopiada ? "Copiado" : "Copiar"}
-                    </button>
-                  </div>
-                </div>)}
-            </div>))}
+          {consultaMascotas.data?.map((mascota, indice) => {
+            const urlFicha = `/p/${mascota.tokenQr}`;
+            const urlAbsoluta = `${window.location.origin}${urlFicha}`;
+            return (<TarjetaMascota key={mascota.id} mascota={mascota} indice={indice} qrVisible={panelAbierto?.idMascota === mascota.id && panelAbierto.tipo === "qr"} transferenciaVisible={panelAbierto?.idMascota === mascota.id && panelAbierto.tipo === "transferencia"} tokenCopiado={idMascotaCopiada === mascota.id} estadoOcupado={actualizarEstado.isPending} transferenciaOcupada={crearTransferencia.isPending} codigoTransferencia={codigosTransferencia[mascota.id] ?? null} errorTransferencia={errorTransferencia?.idMascota === mascota.id ? errorTransferencia : null} transferenciaCopiada={transferenciaCopiada} urlFicha={urlFicha} urlImagenQr={`data:image/svg+xml;utf8,${encodeURIComponent(generarSvgPlacaQr(urlAbsoluta))}`} alCambiarEstado={() => actualizarEstado.mutate({ idMascota: mascota.id, estado: mascota.estado === "extraviada" ? "activa" : "extraviada" })} alCopiarToken={() => copiarTokenQr(mascota.id, mascota.tokenQr)} alAlternarQr={() => setPanelAbierto(panelAbierto?.idMascota === mascota.id && panelAbierto.tipo === "qr" ? null : { idMascota: mascota.id, tipo: "qr" })} alDescargarQr={() => descargarSvgPlacaQr(urlAbsoluta, `placa-qr-${mascota.nombre}`)} alTransferir={() => alternarTransferencia(mascota.id)} alReemplazarTransferencia={() => crearTransferencia.mutate({ idMascota: mascota.id, reemplazar: true })} alCopiarTransferencia={() => copiarCodigoTransferencia(codigosTransferencia[mascota.id])}/>);
+        })}
         </div>
 
-        <div className="shadow-soft mb-8 rounded-xl border border-sand bg-paper-raised p-4 sm:p-5">
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink">Tengo un código de transferencia</h2>
+        <Panel className="mx-auto mb-8 max-w-reading">
+          <PanelCabecera titulo="Tengo un código de transferencia"/>
+          <PanelCuerpo>
           <form className="flex flex-col gap-3 sm:flex-row" onSubmit={(e) => {
             e.preventDefault();
             canjearTransferencia.mutate(entradaCanje);
         }}>
-            <input className="min-h-11 flex-1 rounded-md border border-sand-dark px-3 text-sm font-mono focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder="Pega aquí el código que te compartió el dueño anterior" value={entradaCanje} onChange={(e) => setEntradaCanje(e.target.value)}/>
-            <button type="submit" disabled={canjearTransferencia.isPending || !entradaCanje} className="min-h-11 rounded-md bg-ink px-4 text-sm font-medium text-white hover:bg-ink/85 disabled:opacity-50">
+            <Entrada className="min-h-11 flex-1 rounded-md border border-control-border px-3 text-sm font-mono bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" placeholder="Pega aquí el código que te compartió el dueño anterior" {...entrada("codigoTransferencia")} value={entradaCanje} onChange={(e) => setEntradaCanje(e.target.value)}/>
+            <button type="submit" disabled={canjearTransferencia.isPending || !entradaCanje} className={claseBoton({})}>
               {canjearTransferencia.isPending ? "Canjeando..." : "Canjear"}
             </button>
           </form>
-          {canjearTransferencia.isError && (<p className="mt-2 text-sm text-clay-dark">{canjearTransferencia.error.message}</p>)}
-          {canjearTransferencia.isSuccess && <p className="mt-2 text-sm text-pine">Mascota transferida a tu cuenta.</p>}
-        </div>
+          {canjearTransferencia.isError && (<p className="mt-2 text-sm text-clay-ink">{canjearTransferencia.error.message}</p>)}
+          {canjearTransferencia.isSuccess && <p className="mt-2 text-sm font-medium text-pine-ink">Mascota transferida a tu cuenta.</p>}
+          </PanelCuerpo>
+        </Panel>
 
-        <div className="shadow-soft rounded-xl border border-sand bg-paper-raised p-4 sm:p-5">
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="font-display text-lg font-semibold text-ink">
-              {modoFormulario === "camada" ? "Registrar camada" : modoFormulario === "masiva" ? "Carga masiva de albergue" : "Registrar nueva mascota"}
-            </h2>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+        <Panel className="mx-auto max-w-reading">
+          <PanelCabecera>
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold">
+                {modoFormulario === "camada" ? "Registrar camada" : modoFormulario === "masiva" ? "Carga masiva de albergue" : "Registrar nueva mascota"}
+              </h2>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
               {modoFormulario !== "individual" && (<button type="button" onClick={() => setModoFormulario("individual")} className="min-h-9 text-ink-soft hover:text-ink">
                   Registrar una sola mascota
                 </button>)}
@@ -252,36 +202,37 @@ export function PaginaPanel() {
                   ¿Eres un albergue?
                 </button>)}
             </div>
-          </div>
-
+            </div>
+          </PanelCabecera>
+          <PanelCuerpo>
           {modoFormulario === "masiva" ? (<div className="space-y-3">
               <p className="text-sm text-ink-soft">
-                Hasta 100 mascotas por carga, una por línea: <code className="rounded bg-paper px-1 font-mono">nombre,especie</code>. Se
+                Hasta 100 mascotas por carga, una por línea: <code className="rounded bg-canvas px-1 font-mono">nombre,especie</code>. Se
                 procesan en segundo plano — te avisamos por correo cuando termine.
               </p>
-              <textarea className="h-40 w-full rounded-md border border-sand-dark px-3 py-2 font-mono text-sm focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder={"Firulais,perro\nMishi,gato\nRocky,perro"} value={textoMasivo} onChange={(e) => setTextoMasivo(e.target.value)}/>
+              <Entrada comoEtiqueta="textarea" className="h-40 w-full rounded-md border border-control-border px-3 py-2 font-mono text-sm bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" placeholder={"Firulais,perro\nMishi,gato\nRocky,perro"} maxLength={6000} value={textoMasivo} onChange={(e) => setTextoMasivo(e.target.value)}/>
               <p className="text-xs text-ink-faint">
                 {mascotasMasivas.length} mascota(s) detectada(s) {mascotasMasivas.length > 100 && "— supera el máximo de 100"}
               </p>
-              {cargarMasiva.isError && <p className="text-sm text-clay-dark">{cargarMasiva.error.message}</p>}
+              {cargarMasiva.isError && <p className="text-sm text-clay-ink">{cargarMasiva.error.message}</p>}
               {cargarMasiva.isSuccess && (<p className="text-sm text-pine">
                   Se encolaron {cargarMasiva.data.encolados} mascotas. Te avisaremos por correo cuando el proceso termine.
                 </p>)}
-              <button type="button" onClick={() => cargarMasiva.mutate(mascotasMasivas)} disabled={cargarMasiva.isPending || mascotasMasivas.length === 0 || mascotasMasivas.length > 100} className="min-h-12 w-full rounded-md bg-pine font-medium text-white hover:bg-pine-dark disabled:opacity-50 sm:w-auto sm:px-6">
+              <button type="button" onClick={() => cargarMasiva.mutate(mascotasMasivas)} disabled={cargarMasiva.isPending || mascotasMasivas.length === 0 || mascotasMasivas.length > 100} className={claseBoton({ tamano: "lg", bloque: "movil" })}>
                 {cargarMasiva.isPending ? "Enviando..." : `Cargar ${mascotasMasivas.length} mascotas`}
               </button>
             </div>) : modoFormulario === "camada" ? (<form className="space-y-3" onSubmit={manejarEnvioCamada((values) => crearCamada.mutate(values))}>
               <div className="space-y-2">
                 {camposCamada.map((campo, index) => (<div key={campo.id} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                     <div>
-                      <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder="Nombre" {...registrarCampoCamada(`mascotas.${index}.nombre`)}/>
-                      {erroresCamada.mascotas?.[index]?.nombre && (<p className="mt-1 text-xs text-clay-dark">{erroresCamada.mascotas[index]?.nombre?.message}</p>)}
+                      <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" placeholder="Nombre" {...registrarCampoCamada(`mascotas.${index}.nombre`)} {...entrada("nombreMascota")}/>
+                      {erroresCamada.mascotas?.[index]?.nombre && (<p className="mt-2 text-sm font-medium text-clay-ink">{erroresCamada.mascotas[index]?.nombre?.message}</p>)}
                     </div>
                     <div>
-                      <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder="Especie (perro, gato...)" {...registrarCampoCamada(`mascotas.${index}.especie`)}/>
-                      {erroresCamada.mascotas?.[index]?.especie && (<p className="mt-1 text-xs text-clay-dark">{erroresCamada.mascotas[index]?.especie?.message}</p>)}
+                      <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" placeholder="Especie (perro, gato...)" {...registrarCampoCamada(`mascotas.${index}.especie`)} {...entrada("especie")}/>
+                      {erroresCamada.mascotas?.[index]?.especie && (<p className="mt-2 text-sm font-medium text-clay-ink">{erroresCamada.mascotas[index]?.especie?.message}</p>)}
                     </div>
-                    <button type="button" onClick={() => quitarCriaCamada(index)} disabled={camposCamada.length <= 1} title="Quitar" className="flex min-h-11 items-center justify-center rounded-md border border-sand-dark text-ink-soft hover:bg-paper disabled:opacity-30 sm:w-11">
+                    <button type="button" onClick={() => quitarCriaCamada(index)} disabled={camposCamada.length <= 1} title="Quitar" className="flex min-h-11 items-center justify-center rounded-md border border-border-strong text-ink-soft hover:bg-canvas disabled:opacity-30 sm:w-11">
                       <Trash2 className="h-4 w-4"/>
                     </button>
                   </div>))}
@@ -292,8 +243,8 @@ export function PaginaPanel() {
               </button>
 
               <div>
-                {crearCamada.isError && <p className="mb-2 text-sm text-clay-dark">{crearCamada.error.message}</p>}
-                <button type="submit" disabled={crearCamada.isPending} className="min-h-12 w-full rounded-md bg-pine font-medium text-white hover:bg-pine-dark disabled:opacity-50 sm:w-auto sm:px-6">
+                {crearCamada.isError && <p className="mb-2 text-sm text-clay-ink">{crearCamada.error.message}</p>}
+                <button type="submit" disabled={crearCamada.isPending} className={claseBoton({ tamano: "lg", bloque: "movil" })}>
                   {crearCamada.isPending ? "Guardando..." : `Registrar ${camposCamada.length} mascotas`}
                 </button>
               </div>
@@ -303,32 +254,37 @@ export function PaginaPanel() {
                 <p className="text-xs text-ink-faint">Foto opcional — saldrá en la ficha que se abre con el QR</p>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-ink">Nombre</label>
-                <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("nombre")}/>
-                {errors.nombre && <p className="mt-1 text-xs text-clay-dark">{errors.nombre.message}</p>}
+                <label className="mb-2 block text-sm font-medium text-ink">Nombre</label>
+                <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" {...register("nombre")} {...entrada("nombreMascota")}/>
+                {errors.nombre && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.nombre.message}</p>}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-ink">Especie</label>
-                <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder="perro, gato..." {...register("especie")}/>
-                {errors.especie && <p className="mt-1 text-xs text-clay-dark">{errors.especie.message}</p>}
+                <label className="mb-2 block text-sm font-medium text-ink">Especie</label>
+                <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" placeholder="perro, gato..." {...register("especie")} {...entrada("especie")}/>
+                {errors.especie && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.especie.message}</p>}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-ink">Raza (opcional)</label>
-                <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("raza")}/>
+                <label className="mb-2 block text-sm font-medium text-ink">Raza (opcional)</label>
+                <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" {...register("raza")} {...entrada("raza")}/>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-ink">Sexo (opcional)</label>
-                <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("sexo")}/>
+                <label className="mb-2 block text-sm font-medium text-ink">Sexo (opcional)</label>
+                <select className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" {...register("sexo")}>
+                  <option value="">Sin dato</option>
+                  <option value="macho">Macho</option>
+                  <option value="hembra">Hembra</option>
+                </select>
               </div>
               <div className="sm:col-span-2">
-                {crearMascota.isError && <p className="mb-2 text-sm text-clay-dark">{crearMascota.error.message}</p>}
-                {errorFotoNueva && <p role="alert" className="mb-2 text-sm text-clay-dark">{errorFotoNueva}</p>}
-                <button type="submit" disabled={crearMascota.isPending} className="min-h-12 w-full rounded-md bg-pine font-medium text-white hover:bg-pine-dark disabled:opacity-50 sm:w-auto sm:px-6">
+                {crearMascota.isError && <p className="mb-2 text-sm text-clay-ink">{crearMascota.error.message}</p>}
+                {errorFotoNueva && <p role="alert" className="mb-2 text-sm text-clay-ink">{errorFotoNueva}</p>}
+                <button type="submit" disabled={crearMascota.isPending} className={claseBoton({ tamano: "lg", bloque: "movil" })}>
                   {crearMascota.isPending ? "Guardando..." : "Registrar mascota"}
                 </button>
               </div>
             </form>)}
-        </div>
+          </PanelCuerpo>
+        </Panel>
       </main>
     </div>);
 }
