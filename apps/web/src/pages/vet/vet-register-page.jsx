@@ -8,12 +8,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { PlantillaAutenticacion } from "../../components/ui/auth-layout";
 import { CamposContrasena } from "../../components/auth/password-fields";
+import { claseBoton } from "../../components/ui/boton";
+import { entrada } from "../../lib/entrada";
+import { Entrada } from "../../components/ui/campo";
 const esquemaFormulario = esquemaCreacionVeterinario.and(z.object({ confirmarContrasena: z.string() })).refine((datos) => datos.contrasena === datos.confirmarContrasena, { message: "Las contraseñas no coinciden", path: ["confirmarContrasena"] });
 // Códigos ISO 3166-1 alfa-2; el nombre se resuelve con Intl para no mantener una tabla de traducciones.
 const CODIGOS_PAIS = ["PE", "AR", "BO", "BR", "CL", "CO", "CR", "CU", "DO", "EC", "SV", "ES", "US", "GT", "HN", "MX", "NI", "PA", "PY", "PT", "UY", "VE", "CA", "FR", "DE", "IT", "GB"];
 const nombresPais = new Intl.DisplayNames(["es"], { type: "region" });
 const OPCIONES_PAIS = CODIGOS_PAIS.map((codigo) => ({ codigo, nombre: nombresPais.of(codigo) })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-const CLASE_INPUT = "w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20";
+const CLASE_INPUT = "w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus";
 export function PaginaRegistroVeterinario() {
     const navigate = useNavigate();
     const { register, handleSubmit, formState: { errors }, } = useForm({ resolver: zodResolver(esquemaFormulario), defaultValues: { pais: "PE" } });
@@ -28,46 +31,46 @@ export function PaginaRegistroVeterinario() {
         </div>}>
       <form className="space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">País de tu licencia</label>
+          <label className="mb-2 block text-sm font-medium text-ink">País de tu licencia</label>
           <select className={CLASE_INPUT} {...register("pais")}>
             {OPCIONES_PAIS.map(({ codigo, nombre }) => (<option key={codigo} value={codigo}>
                 {nombre}
               </option>))}
           </select>
-          {errors.pais && <p className="mt-1 text-xs text-clay-dark">{errors.pais.message}</p>}
+          {errors.pais && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.pais.message}</p>}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">Entidad que emitió tu licencia</label>
-          <input className={CLASE_INPUT} placeholder="Ej.: CMVP, Colegio Oficial de Veterinarios de Madrid" {...register("autoridadEmisora")}/>
-          {errors.autoridadEmisora && <p className="mt-1 text-xs text-clay-dark">{errors.autoridadEmisora.message}</p>}
+          <label className="mb-2 block text-sm font-medium text-ink">Entidad que emitió tu licencia</label>
+          <Entrada className={CLASE_INPUT} placeholder="Ej.: CMVP, Colegio Oficial de Veterinarios de Madrid" {...register("autoridadEmisora")} {...entrada("autoridad")}/>
+          {errors.autoridadEmisora && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.autoridadEmisora.message}</p>}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">Número de licencia o colegiatura</label>
-          <input className={`${CLASE_INPUT} font-mono`} {...register("numeroLicencia")}/>
-          {errors.numeroLicencia && <p className="mt-1 text-xs text-clay-dark">{errors.numeroLicencia.message}</p>}
+          <label className="mb-2 block text-sm font-medium text-ink">Número de licencia o colegiatura</label>
+          <Entrada className={`${CLASE_INPUT} font-mono`} {...register("numeroLicencia")} {...entrada("licencia")}/>
+          {errors.numeroLicencia && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.numeroLicencia.message}</p>}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink">
+          <label className="mb-2 block text-sm font-medium text-ink">
             Identificador fiscal del establecimiento <span className="font-normal text-ink-soft">(opcional)</span>
           </label>
-          <input className={`${CLASE_INPUT} font-mono`} placeholder="RUC, EIN, NIF..." {...register("identificadorFiscal")}/>
-          {errors.identificadorFiscal && <p className="mt-1 text-xs text-clay-dark">{errors.identificadorFiscal.message}</p>}
+          <Entrada className={`${CLASE_INPUT} font-mono`} placeholder="RUC, EIN, NIF..." {...register("identificadorFiscal")} {...entrada("fiscal")}/>
+          {errors.identificadorFiscal && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.identificadorFiscal.message}</p>}
         </div>
 
         <div>
-          <label htmlFor="correo" className="mb-1 block text-sm font-medium text-ink">Correo</label>
-          <input id="correo" type="email" autoComplete="username" className={CLASE_INPUT} {...register("correo")}/>
-          {errors.correo && <p className="mt-1 text-xs text-clay-dark">{errors.correo.message}</p>}
+          <label htmlFor="correo" className="mb-2 block text-sm font-medium text-ink">Correo</label>
+          <Entrada id="correo" type="email" autoComplete="username" className={CLASE_INPUT} {...register("correo")} {...entrada("correo")}/>
+          {errors.correo && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.correo.message}</p>}
         </div>
 
         <CamposContrasena register={register} errors={errors}/>
 
-        {mutation.isError && <p className="text-sm text-clay-dark">{mutation.error.message}</p>}
+        {mutation.isError && <p className="text-sm text-clay-ink">{mutation.error.message}</p>}
 
-        <button type="submit" disabled={mutation.isPending} className="min-h-12 w-full rounded-md bg-pine font-medium text-white hover:bg-pine-dark disabled:opacity-50">
+        <button type="submit" disabled={mutation.isPending} className={claseBoton({ tamano: "lg", bloque: true })}>
           {mutation.isPending ? "Enviando..." : "Solicitar cuenta profesional"}
         </button>
       </form>
