@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { eventosSalud, mascotas, veterinarios } from "../../db/schema.js";
 import { ErrorConflicto, ErrorProhibido, ErrorNoEncontrado } from "../../domain/errors.js";
+import { TEMA_NORMALIZADOR } from "../../domain/temas-cola.js";
 import { solicitarProyeccionPerfilPublico } from "../public/request-public-profile-projection.js";
 function aEventoSalud(row) {
     return {
@@ -94,7 +95,7 @@ async function crearEventoSalud(ports, { idMascota, especie, autor, nombreProfes
         return reintentoIdempotente(ganador, idMascota);
     }
     if (insertado.tipo === "vacuna") {
-        ports.cola.enqueue("normalizer", { idEvento: insertado.id, textoOriginal: insertado.textoOriginal, species: especie });
+        ports.cola.enqueue(TEMA_NORMALIZADOR, { idEvento: insertado.id, textoOriginal: insertado.textoOriginal, species: especie });
         solicitarProyeccionPerfilPublico(ports, idMascota);
     }
     return aEventoSalud(insertado);

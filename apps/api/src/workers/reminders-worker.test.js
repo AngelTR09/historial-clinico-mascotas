@@ -2,7 +2,7 @@ import "../env.js";
 import { eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { db } from "../db/client.js";
-import { catalogoVacunas } from "../db/schema.js";
+import { catalogoVacunas, mascotas, recordatoriosDespachados } from "../db/schema.js";
 import { limpiarFixtures, crearRastreadorFixtures, crearEventoSaludAislado, crearDuenoYMascotaAislados } from "../test-support/fixtures.js";
 import { ejecutarBarridoRecordatorios } from "./reminders-worker.js";
 function puertosFalsos({ fallaAlEncolarPara } = {}) {
@@ -112,5 +112,97 @@ describe("ejecutarBarridoRecordatorios", () => {
         await ejecutarBarridoRecordatorios(ports);
         expect(encolados.find((e) => e.payload.to === reciente.ownerEmail)).toBeUndefined();
         expect(encolados.find((e) => e.payload.to === corregida.ownerEmail)).toBeUndefined();
+    });
+
+    describe("cada vencimiento se avisa una vez por etapa (el \"marca enviados\" del diagrama)", () => {
+        async function duenoConVacunaVencida(especie = "perro") {
+            const dueno = await crearDuenoYMascotaAislados(rastreador, especie);
+            const [entrada] = await db.select().from(catalogoVacunas).where(eq(catalogoVacunas.especie, especie)).limit(1);
+            await crearEventoSaludAislado(rastreador, {
+                idMascota: dueno.idMascota,
+                idDueno: dueno.idDueno,
+                tipo: "vacuna",
+                textoOriginal: entrada.nombreCanonico,
+                fechaEvento: fechaHaceNDias(entrada.mesesVigencia * 30 + 30),
+                vacunaCanonicaId: entrada.id,
+            });
+            return dueno;
+        }
+        const paraElDueno = (encolados, correo) => encolados.filter((e) => e.payload.to === correo);
+
+        it("un segundo barrido no vuelve a encolar lo que ya se despachó", async () => {
+            const dueno = await duenoConVacunaVencida();
+            const primero = puertosFalsos();
+            await ejecutarBarridoRecordatorios(primero.ports);
+            expect(paraElDueno(primero.encolados, dueno.ownerEmail)).toHaveLength(1);
+            expect(paraElDueno(primero.encolados, dueno.ownerEmail)[0].payload.etapa).toBe("vencido");
+
+            const segundo = puertosFalsos();
+            const resultado = await ejecutarBarridoRecordatorios(segundo.ports);
+            expect(paraElDueno(segundo.encolados, dueno.ownerEmail)).toHaveLength(0);
+            expect(resultado.yaAvisados).toBeGreaterThanOrEqual(1);
+        });
+
+        it("RNF 18: si la cola falla, el recordatorio NO queda marcado y el siguiente barrido lo reintenta", async () => {
+            const dueno = await duenoConVacunaVencida();
+            const caida = puertosFalsos({ fallaAlEncolarPara: dueno.ownerEmail });
+            const resultado = await ejecutarBarridoRecordatorios(caida.ports);
+            expect(resultado.fallidosAlEncolar).toBeGreaterThanOrEqual(1);
+            const marcas = await db.select().from(recordatoriosDespachados).where(eq(recordatoriosDespachados.idMascota, dueno.idMascota));
+            expect(marcas).toHaveLength(0);
+
+            const recuperada = puertosFalsos();
+            await ejecutarBarridoRecordatorios(recuperada.ports);
+            expect(paraElDueno(recuperada.encolados, dueno.ownerEmail)).toHaveLength(1);
+        });
+
+        it("avisa primero `por_vencer` y, cuando llega la fecha, una vez más como `vencido`", async () => {
+            const dueno = await crearDuenoYMascotaAislados(rastreador, "perro");
+            await crearEventoSaludAislado(rastreador, { idMascota: dueno.idMascota, idDueno: dueno.idDueno, tipo: "desparasitacion", textoOriginal: "Desparasitación interna", fechaEvento: fechaHaceNDias(75) });
+            const antes = puertosFalsos();
+            await ejecutarBarridoRecordatorios(antes.ports);
+            expect(paraElDueno(antes.encolados, dueno.ownerEmail).map((e) => e.payload.etapa)).toEqual(["por_vencer"]);
+
+            const despues = puertosFalsos();
+            const dentroDeUnMes = new Date(Date.now() + 30 * 86_400_000);
+            await ejecutarBarridoRecordatorios(despues.ports, dentroDeUnMes);
+            expect(paraElDueno(despues.encolados, dueno.ownerEmail).map((e) => e.payload.etapa)).toEqual(["vencido"]);
+
+            const repetido = puertosFalsos();
+            await ejecutarBarridoRecordatorios(repetido.ports, dentroDeUnMes);
+            expect(paraElDueno(repetido.encolados, dueno.ownerEmail)).toHaveLength(0);
+        });
+
+        it("una dosis nueva cambia el vencimiento: su aviso es otro y no lo tapa la marca anterior", async () => {
+            const dueno = await crearDuenoYMascotaAislados(rastreador, "perro");
+            await crearEventoSaludAislado(rastreador, { idMascota: dueno.idMascota, idDueno: dueno.idDueno, tipo: "desparasitacion", textoOriginal: "Desparasitación", fechaEvento: fechaHaceNDias(120) });
+            await ejecutarBarridoRecordatorios(puertosFalsos().ports);
+            await crearEventoSaludAislado(rastreador, { idMascota: dueno.idMascota, idDueno: dueno.idDueno, tipo: "desparasitacion", textoOriginal: "Desparasitación", fechaEvento: fechaHaceNDias(100) });
+            const nuevo = puertosFalsos();
+            await ejecutarBarridoRecordatorios(nuevo.ports);
+            expect(paraElDueno(nuevo.encolados, dueno.ownerEmail)).toHaveLength(1);
+        });
+
+        it("no avisa de una mascota fallecida", async () => {
+            const dueno = await duenoConVacunaVencida();
+            await db.update(mascotas).set({ estado: "fallecida" }).where(eq(mascotas.id, dueno.idMascota));
+            const { ports, encolados } = puertosFalsos();
+            await ejecutarBarridoRecordatorios(ports);
+            expect(paraElDueno(encolados, dueno.ownerEmail)).toHaveLength(0);
+        });
+
+        it("una vacuna corregida por un evento posterior no genera aviso (RN 2)", async () => {
+            const dueno = await crearDuenoYMascotaAislados(rastreador, "perro");
+            const [entrada] = await db.select().from(catalogoVacunas).where(eq(catalogoVacunas.especie, "perro")).limit(1);
+            const equivocada = await crearEventoSaludAislado(rastreador, {
+                idMascota: dueno.idMascota, idDueno: dueno.idDueno, tipo: "vacuna", textoOriginal: entrada.nombreCanonico,
+                fechaEvento: fechaHaceNDias(entrada.mesesVigencia * 30 + 30), vacunaCanonicaId: entrada.id,
+            });
+            // La corrección dice que en realidad fue un chequeo: ya no hay vacuna que venza.
+            await crearEventoSaludAislado(rastreador, { idMascota: dueno.idMascota, idDueno: dueno.idDueno, tipo: "chequeo", textoOriginal: "Fue un chequeo, no una vacuna", fechaEvento: fechaHaceNDias(10), corrigeEventoId: equivocada });
+            const { ports, encolados } = puertosFalsos();
+            await ejecutarBarridoRecordatorios(ports);
+            expect(paraElDueno(encolados, dueno.ownerEmail)).toHaveLength(0);
+        });
     });
 });

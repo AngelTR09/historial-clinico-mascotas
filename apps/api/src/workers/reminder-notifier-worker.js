@@ -17,6 +17,7 @@ export function registrarTrabajadorNotificador(ports) {
                 // Los mensajes encolados antes de que existiera `tipo` siguen siendo vacunas.
                 tipo: recordatorio.tipo ?? "vacuna",
                 vencimiento: recordatorio.vencimiento,
+                etapa: recordatorio.etapa,
             },
         });
     });

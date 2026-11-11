@@ -14,3 +14,10 @@ export const INTENTOS_RECORDATORIO = 3;
  * el modelo de lectura (DynamoDB). En SQS es la cola `proyeccion` con su DLQ.
  */
 export const TEMA_PROYECTOR = "projector";
+
+/**
+ * Pide vincular el texto libre de una vacuna con el catálogo (`{ idEvento, textoOriginal, species }`).
+ * Lo encola el registro de un evento y lo vuelve a encolar el barrido diario si nadie lo atendió.
+ * En SQS es la cola `normalizacion` con su DLQ.
+ */
+export const TEMA_NORMALIZADOR = "normalizer";
