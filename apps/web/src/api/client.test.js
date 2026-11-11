@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { establecerToken, limpiarToken } from "../lib/auth-storage";
-import { api, ErrorApi } from "./client";
+import { api, ErrorApi, esFalloTransitorio } from "./client";
 
 function responder(estado, cuerpo) {
     return vi.fn().mockResolvedValue({
@@ -64,5 +64,27 @@ describe("cliente HTTP", () => {
     it("una respuesta 204 no intenta leer JSON", async () => {
         vi.stubGlobal("fetch", responder(204, undefined));
         await expect(api.post("/x")).resolves.toBeUndefined();
+    });
+});
+
+describe("esFalloTransitorio (qué se conserva para reintentar)", () => {
+    it.each([429, 502, 503, 504])("un %i de la API es pasajero", (estado) => {
+        expect(esFalloTransitorio(new ErrorApi("x", estado))).toBe(true);
+    });
+
+    it("sin red o con la API sin contestar a tiempo también", () => {
+        expect(esFalloTransitorio(new TypeError("Failed to fetch"))).toBe(true);
+        expect(esFalloTransitorio(new DOMException("The operation timed out", "TimeoutError"))).toBe(true);
+    });
+
+    it.each([400, 401, 403, 404, 409, 500])("un %i no se reintenta: daría el mismo resultado", (estado) => {
+        expect(esFalloTransitorio(new ErrorApi("x", estado))).toBe(false);
+    });
+
+    it("cada solicitud lleva un plazo: una API colgada no deja la pantalla esperando sin fin", async () => {
+        const fetchFalso = responder(200, {});
+        vi.stubGlobal("fetch", fetchFalso);
+        await api.get("/pets");
+        expect(fetchFalso.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
     });
 });

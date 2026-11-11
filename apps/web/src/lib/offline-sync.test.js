@@ -1,11 +1,12 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../api/client", () => ({
+vi.mock("../api/client", async (original) => ({
+    ...(await original()),
     api: { post: vi.fn(), putRaw: vi.fn() },
 }));
 
-import { api } from "../api/client";
+import { api, ErrorApi } from "../api/client";
 import { encolarSubidaPendiente, eliminarSubidaPendiente, listarSubidasPendientes } from "./offline-queue";
 import { sincronizarSubidasPendientes } from "./offline-sync";
 
@@ -49,6 +50,30 @@ describe("sincronizarSubidasPendientes (RNF 9, RN 6)", () => {
         const cola = await listarSubidasPendientes();
         expect(cola).toHaveLength(2);
         expect(cola.every((item) => item.ultimoError === null)).toBe(true);
+    });
+
+    it.each([503, 502, 504, 429])("si la API responde %i (no disponible) se detiene y conserva todo, igual que sin red", async (estado) => {
+        await encolarSubidaPendiente(evento("2026-09-01T10:00:00.000Z"));
+        await encolarSubidaPendiente(evento("2026-09-01T10:01:00.000Z"));
+        api.post.mockRejectedValue(new ErrorApi("El servicio no está disponible en este momento", estado));
+        const resultado = await sincronizarSubidasPendientes();
+        expect(api.post).toHaveBeenCalledTimes(1);
+        expect(resultado).toEqual({ sincronizados: 0, fallidos: 0 });
+        const cola = await listarSubidasPendientes();
+        expect(cola).toHaveLength(2);
+        expect(cola.every((item) => item.ultimoError === null && item.intentos === 0)).toBe(true);
+    });
+
+    it("cuando la API vuelve, lo que quedó pendiente se envía con su misma clave de idempotencia", async () => {
+        const item = evento("2026-09-01T10:00:00.000Z");
+        await encolarSubidaPendiente(item);
+        api.post.mockRejectedValueOnce(new ErrorApi("no disponible", 503));
+        await sincronizarSubidasPendientes();
+        api.post.mockResolvedValueOnce({});
+        const resultado = await sincronizarSubidasPendientes();
+        expect(resultado).toEqual({ sincronizados: 1, fallidos: 0 });
+        expect(api.post.mock.calls.map((llamada) => llamada[1].claveIdempotencia)).toEqual([item.datos.claveIdempotencia, item.datos.claveIdempotencia]);
+        expect(await listarSubidasPendientes()).toEqual([]);
     });
 
     it("un ítem inválido se marca con su error y no bloquea a los demás", async () => {
