@@ -1,4 +1,4 @@
-# Colas SQS con su DLQ y los temas SNS. El PDF exige que un recordatorio no se pierda
+# Colas SQS con su DLQ y el tema SNS de alertas. El PDF exige que un recordatorio no se pierda
 # aunque el servicio de notificaciones falle (RNF 15 y 18): el mensaje reintenta
 # `maximo_recepciones` veces y luego queda guardado en la DLQ.
 #
@@ -46,12 +46,8 @@ resource "aws_sns_topic" "alertas" {
   tags = var.etiquetas_comunes
 }
 
-resource "aws_sns_topic" "recordatorios" {
-  name              = "${var.nombre_proyecto}-recordatorios"
-  kms_master_key_id = var.arn_clave_datos
-
-  tags = var.etiquetas_comunes
-}
+# No hay tema SNS de recordatorios: en el diagrama del PMV el recordatorio va de la cola `recordatorios`
+# a la Lambda notificador y de ahí a SES. El tema que existía no tenía quien publicara ni quien escuchara.
 
 resource "aws_sns_topic_subscription" "alertas_correo" {
   for_each = toset(var.correos_alerta)

@@ -23,11 +23,6 @@ output "arn_tema_alertas" {
   value       = aws_sns_topic.alertas.arn
 }
 
-output "arn_tema_recordatorios" {
-  description = "ARN del tema SNS de recordatorios a dueños."
-  value       = aws_sns_topic.recordatorios.arn
-}
-
 output "arns_identidades_ses" {
   description = "ARN de cada identidad verificada en SES (remitente y destinatarios de prueba)."
   value       = [for identidad in aws_sesv2_email_identity.correo : identidad.arn]

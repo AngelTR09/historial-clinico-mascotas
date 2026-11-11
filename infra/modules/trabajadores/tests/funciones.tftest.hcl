@@ -85,4 +85,9 @@ run "el_notificador_envia_por_ses_y_el_normalizador_puede_pedir_la_proyeccion" {
     condition     = aws_lambda_function.funcion["proyector"].environment[0].variables["URL_COLA_PROYECCION"] == var.urls_colas["proyeccion"] && strcontains(aws_iam_role_policy.funcion["proyector"].policy, "sqs:SendMessage")
     error_message = "El proyector reencola las mascotas existentes en la recarga manual: necesita la URL y el permiso."
   }
+
+  assert {
+    condition     = aws_lambda_function.funcion["recordatorios"].environment[0].variables["URL_COLA_NORMALIZACION"] == var.urls_colas["normalizacion"] && strcontains(aws_iam_role_policy.funcion["recordatorios"].policy, var.arns_colas["normalizacion"]) && strcontains(aws_iam_role_policy.funcion["recordatorios"].policy, var.arns_colas["recordatorios"])
+    error_message = "El barrido diario encola recordatorios y reencola las vacunas sin normalizar: necesita las dos URL y permiso sobre las dos colas."
+  }
 }
