@@ -6,7 +6,7 @@ import { crearManejadorSqs } from "./lambda-sqs.js";
  * en DynamoDB. Es el cuerpo de `workers/projector-worker.js`; aquí solo se ensambla.
  *
  * También acepta una invocación manual para proyectar las mascotas que existían antes del proyector:
- *   aws lambda invoke --function-name hcm-proyector --cli-binary-format raw-in-base64-out \
+ *   aws lambda invoke --function-name hcm-dev-proyector --cli-binary-format raw-in-base64-out \
  *     --payload '{"accion":"reconstruir-todo"}' salida.json
  * Responde `{ encolados, fallidos, siguiente }`; si `siguiente` no es null se vuelve a invocar con
  * `{"accion":"reconstruir-todo","despues":"<siguiente>"}` hasta que sea null.

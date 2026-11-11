@@ -15,15 +15,21 @@ const PLANTILLAS = {
         asunto: "Tu código de verificación",
         cuerpo: `Tu código es ${codigo}. Vence en ${minutosVigencia} minutos.\n\nSi no lo pediste, ignora este mensaje.`,
     }),
-    recordatorio_vencimiento_vacuna: ({ nombreMascota, vacuna, vencimiento, tipo }) => tipo === "desparasitacion"
-        ? {
-            asunto: `Desparasitación por vencer: ${nombreMascota}`,
-            cuerpo: `La desparasitación de ${nombreMascota} vence el ${vencimiento}.\n\nAgenda la siguiente con tu veterinario.`,
+    // `etapa` distingue el aviso previo del que llega cuando la fecha ya pasó; los mensajes anteriores a
+    // que existiera `etapa` se redactan como aviso previo.
+    recordatorio_vencimiento_vacuna: ({ nombreMascota, vacuna, vencimiento, tipo, etapa }) => {
+        const vencido = etapa === "vencido";
+        if (tipo === "desparasitacion") {
+            return {
+                asunto: `Desparasitación ${vencido ? "vencida" : "por vencer"}: ${nombreMascota}`,
+                cuerpo: `La desparasitación de ${nombreMascota} ${vencido ? "venció" : "vence"} el ${vencimiento}.\n\nAgenda la siguiente con tu veterinario.`,
+            };
         }
-        : {
-            asunto: `Vacuna por vencer: ${nombreMascota}`,
-            cuerpo: `La vacuna "${vacuna}" de ${nombreMascota} vence el ${vencimiento}.\n\nAgenda su refuerzo con tu veterinario.`,
-        },
+        return {
+            asunto: `Vacuna ${vencido ? "vencida" : "por vencer"}: ${nombreMascota}`,
+            cuerpo: `La vacuna "${vacuna}" de ${nombreMascota} ${vencido ? "venció" : "vence"} el ${vencimiento}.\n\nAgenda su refuerzo con tu veterinario.`,
+        };
+    },
     carga_masiva_completada: ({ total, exitosas, fallidas }) => ({
         asunto: "Tu carga masiva terminó",
         cuerpo: `Se procesaron ${total} mascotas: ${exitosas} registradas y ${fallidas} con error.`,

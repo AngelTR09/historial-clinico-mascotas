@@ -1,30 +1,48 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
+import { TEMA_NORMALIZADOR } from "../domain/temas-cola.js";
 import { solicitarProyeccionPerfilPublico } from "../use-cases/public/request-public-profile-projection.js";
 import { colaCuracion, eventosSalud, catalogoVacunas } from "../db/schema.js";
 import { mejorCoincidenciaVacuna, normalizarTexto, UMBRAL_AUTO_MATCH_VACUNA, UMBRAL_SUGERENCIA_VACUNA } from "../normalizer/similarity.js";
 /**
- * Consumidor local del tópico 'normalizer' (PuertoCola). En la nube este
- * mismo cuerpo corre como Lambda (`workers/normalizer`); aquí solo cambia
- * quién lo invoca. Nunca bloquea el registro del evento — la escritura
- * de `health_events` ya ocurrió antes de encolar este trabajo (RN 7/RN 8).
+ * Consumidor del tópico 'normalizer' (PuertoCola). En la nube este mismo cuerpo corre como la Lambda
+ * `normalizador`; aquí solo cambia quién lo invoca. Nunca bloquea el registro del evento: la escritura
+ * de `health_events` ya ocurrió antes de encolar este trabajo (RN 7 y RN 8).
+ *
+ * Es idempotente, porque SQS entrega al menos una vez y el barrido diario vuelve a encolar lo que no
+ * se atendió: cada evento se atiende una sola vez, y lo marca `normalized_at`. La marca y su efecto
+ * (vincular al catálogo o sumar a la curaduría) van en la misma transacción, así que un fallo a mitad
+ * deja el evento sin marcar y el reintento lo procesa entero.
  */
 export function registrarTrabajadorNormalizador(ports) {
-    ports.cola.subscribe("normalizer", async (trabajo) => {
+    ports.cola.subscribe(TEMA_NORMALIZADOR, async (trabajo) => {
         const candidatos = await db
             .select({ id: catalogoVacunas.id, nombreCanonico: catalogoVacunas.nombreCanonico })
             .from(catalogoVacunas)
             .where(and(eq(catalogoVacunas.especie, trabajo.species), eq(catalogoVacunas.activo, true)));
         const match = mejorCoincidenciaVacuna(trabajo.textoOriginal, candidatos);
-        if (match && match.score >= UMBRAL_AUTO_MATCH_VACUNA) {
-            const [actualizado] = await db.update(eventosSalud).set({ vacunaCanonicaId: match.candidate.id }).where(eq(eventosSalud.id, trabajo.idEvento)).returning({ idMascota: eventosSalud.idMascota });
-            // El nombre canónico reemplaza al texto libre en la ficha pública.
-            if (actualizado) {
-                solicitarProyeccionPerfilPublico(ports, actualizado.idMascota);
+        const vinculada = match && match.score >= UMBRAL_AUTO_MATCH_VACUNA ? match.candidate.id : null;
+        const idMascotaVinculada = await db.transaction(async (tx) => {
+            const [atendido] = await tx
+                .update(eventosSalud)
+                .set({ normalizadoEn: new Date(), ...(vinculada ? { vacunaCanonicaId: vinculada } : {}) })
+                .where(and(eq(eventosSalud.id, trabajo.idEvento), isNull(eventosSalud.normalizadoEn)))
+                .returning({ idMascota: eventosSalud.idMascota });
+            if (!atendido) {
+                // Mensaje repetido, o el evento ya no existe: no hay nada que hacer.
+                return null;
             }
-            return;
+            if (vinculada) {
+                return atendido.idMascota;
+            }
+            await registrarOActualizarCuraduria(tx, trabajo.textoOriginal, match && match.score >= UMBRAL_SUGERENCIA_VACUNA ? match.candidate.id : null);
+            return null;
+        });
+        // El nombre canónico reemplaza al texto libre en la ficha pública. Se espera: en una Lambda el
+        // envío a la cola se perdería al congelarse la función.
+        if (idMascotaVinculada) {
+            await solicitarProyeccionPerfilPublico(ports, idMascotaVinculada);
         }
-        await registrarOActualizarCuraduria(trabajo.textoOriginal, match && match.score >= UMBRAL_SUGERENCIA_VACUNA ? match.candidate.id : null);
     });
 }
 /**
@@ -32,13 +50,13 @@ export function registrarTrabajadorNormalizador(ports) {
  * vacunas) para que "Antirrábica", "antirrabica" y "ANTIRRÁBICA" sumen a
  * la misma fila en vez de crear una por cada variante de escritura.
  */
-async function registrarOActualizarCuraduria(textoOriginal, sugerenciaId) {
+async function registrarOActualizarCuraduria(tx, textoOriginal, sugerenciaId) {
     const normalizado = normalizarTexto(textoOriginal);
-    const pendientes = await db.select().from(colaCuracion).where(eq(colaCuracion.estado, "pendiente"));
+    const pendientes = await tx.select().from(colaCuracion).where(eq(colaCuracion.estado, "pendiente"));
     const existente = pendientes.find((fila) => normalizarTexto(fila.textoOriginal) === normalizado);
     if (existente) {
-        await db.update(colaCuracion).set({ ocurrencias: existente.ocurrencias + 1 }).where(eq(colaCuracion.id, existente.id));
+        await tx.update(colaCuracion).set({ ocurrencias: existente.ocurrencias + 1 }).where(eq(colaCuracion.id, existente.id));
         return;
     }
-    await db.insert(colaCuracion).values({ textoOriginal, ocurrencias: 1, sugerenciaId, estado: "pendiente" });
+    await tx.insert(colaCuracion).values({ textoOriginal, ocurrencias: 1, sugerenciaId, estado: "pendiente" });
 }

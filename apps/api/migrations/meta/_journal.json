@@ -92,6 +92,13 @@
       "when": 1793172454743,
       "tag": "0012_reclamo_contrasena_pendiente",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794382967724,
+      "tag": "0013_recordatorios_despachados",
+      "breakpoints": true
     }
   ]
 }

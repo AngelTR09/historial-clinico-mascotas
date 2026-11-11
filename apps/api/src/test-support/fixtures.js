@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { encryptSecret, hmacWithPepper } from "../crypto/symmetric.js";
 import { db } from "../db/client.js";
-import { registroAuditoria, eventosSalud, duenos, mascotas, transferencias, verificacionesCorreo, veterinarios } from "../db/schema.js";
+import { registroAuditoria, eventosSalud, duenos, mascotas, transferencias, verificacionesCorreo, veterinarios, recordatoriosDespachados } from "../db/schema.js";
 export function crearRastreadorFixtures() {
     return { ownerIds: [], petIds: [], eventIds: [], vetIds: [] };
 }
@@ -16,6 +16,7 @@ export async function limpiarFixtures(rastreador) {
     // Una transferencia referencia la mascota (y a sus dos dueños): se borra antes que ellos.
     if (rastreador.petIds.length > 0) {
         await db.delete(transferencias).where(inArray(transferencias.idMascota, rastreador.petIds));
+        await db.delete(recordatoriosDespachados).where(inArray(recordatoriosDespachados.idMascota, rastreador.petIds));
     }
     // Los códigos de verificación referencian al dueño o al veterinario: van antes que ellos.
     if (rastreador.ownerIds.length > 0) {

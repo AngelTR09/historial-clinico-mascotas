@@ -94,6 +94,10 @@ export const eventosSalud = pgTable("health_events", {
     creadoPor: uuid("created_by").references(() => duenos.id),
     creadoPorVeterinario: uuid("created_by_vet").references(() => veterinarios.id),
     creadoEn: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Cuándo atendió el normalizador esta vacuna, la haya vinculado al catálogo o la haya dejado en
+    // curaduría. Nulo = todavía no pasó por el normalizador: el barrido diario la vuelve a encolar, así
+    // un mensaje perdido no deja la vacuna sin recordatorio. No es contenido clínico (RN 2 no aplica).
+    normalizadoEn: timestamp("normalized_at", { withTimezone: true }),
 }, (table) => [
     check("health_events_autor_chk", sql `(${table.creadoPor} IS NOT NULL)::int + (${table.creadoPorVeterinario} IS NOT NULL)::int = 1`),
     uniqueIndex("health_events_idempotency_key_idx").on(table.claveIdempotencia),
@@ -176,6 +180,25 @@ export const transferencias = pgTable("transfers", {
     // RNF 14: la base garantiza que una mascota tenga a lo sumo una cesión pendiente, así 20 solicitudes
     // simultáneas no pueden dejar 20 códigos válidos para la misma mascota.
     uniqueIndex("transfers_pet_pending_idx").on(table.idMascota).where(sql `${table.estado} = 'pendiente'`),
+]);
+/**
+ * Recordatorios que el barrido diario ya encoló (el "marca enviados" del diagrama). Cada vencimiento
+ * se avisa a lo sumo dos veces: cuando entra en la ventana (`por_vencer`) y cuando ya venció
+ * (`vencido`). `concepto` es `vacuna:<id del catálogo>` o `desparasitacion`. Una dosis nueva cambia la
+ * fecha de vencimiento, así que su aviso es una fila distinta.
+ */
+export const recordatoriosDespachados = pgTable("reminder_dispatches", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    idMascota: uuid("pet_id")
+        .notNull()
+        .references(() => mascotas.id),
+    concepto: text("concept").notNull(),
+    venceEn: date("due_date").notNull(),
+    etapa: text("stage").notNull(),
+    despachadoEn: timestamp("dispatched_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+    uniqueIndex("reminder_dispatches_unico_idx").on(table.idMascota, table.concepto, table.venceEn, table.etapa),
+    check("reminder_dispatches_etapa_chk", sql `${table.etapa} IN ('por_vencer', 'vencido')`),
 ]);
 export const registroAuditoria = pgTable("audit_log", {
     id: uuid("id").primaryKey().defaultRandom(),

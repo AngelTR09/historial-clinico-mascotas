@@ -13,6 +13,7 @@ exigirBaseLocal(config.DATABASE_URL, "db:reset");
  */
 const TABLAS = [
     "audit_log",
+    "reminder_dispatches",
     "email_verifications",
     "transfers",
     "curation_queue",

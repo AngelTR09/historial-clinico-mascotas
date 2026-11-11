@@ -31,4 +31,13 @@ describe("renderizarCorreo", () => {
         expect(asunto).toBe("Desparasitación por vencer: Luna");
         expect(cuerpo).not.toMatch(/vacuna/i);
     });
+
+    it("el recordatorio distingue el aviso previo del que llega con la fecha ya pasada", () => {
+        const datos = { nombreMascota: "Luna", vacuna: "Antirrábica", vencimiento: "2026-11-01" };
+        expect(renderizarCorreo("recordatorio_vencimiento_vacuna", { ...datos, etapa: "por_vencer" }).asunto).toBe("Vacuna por vencer: Luna");
+        const vencido = renderizarCorreo("recordatorio_vencimiento_vacuna", { ...datos, etapa: "vencido" });
+        expect(vencido.asunto).toBe("Vacuna vencida: Luna");
+        expect(vencido.cuerpo).toContain("venció el 2026-11-01");
+        expect(renderizarCorreo("recordatorio_vencimiento_vacuna", { ...datos, tipo: "desparasitacion", etapa: "vencido" }).asunto).toBe("Desparasitación vencida: Luna");
+    });
 });
