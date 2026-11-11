@@ -73,12 +73,13 @@ resource "aws_secretsmanager_secret" "api" {
 }
 
 resource "aws_ssm_parameter" "configuracion" {
-  #checkov:skip=CKV2_AWS_34:Son banderas de configuracion no secretas (p. ej. OCR_ENABLED); los secretos van en Secrets Manager
   for_each = var.parametros
 
   name  = "/${var.nombre_proyecto}/${each.key}"
-  type  = "String"
+  type  = "SecureString"
   value = each.value
+  # Cifrado con la misma clave de datos del proyecto. Hoy son banderas sin secretos, pero así no hay excepción que mantener.
+  key_id = aws_kms_key.datos.arn
 
   tags = var.etiquetas_comunes
 }

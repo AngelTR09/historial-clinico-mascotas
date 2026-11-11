@@ -22,15 +22,42 @@ data "aws_cloudfront_origin_request_policy" "todo_menos_host" {
   name = "Managed-AllViewerExceptHostHeader"
 }
 
-data "aws_cloudfront_response_headers_policy" "seguras" {
-  name = "Managed-SecurityHeadersPolicy"
+# Mismas cabeceras que la política gestionada SecurityHeadersPolicy, escritas aquí para que queden a la vista.
+resource "aws_cloudfront_response_headers_policy" "seguras" {
+  name    = "${var.nombre_proyecto}-cabeceras-seguras"
+  comment = "HSTS, nosniff, X-Frame-Options, Referrer-Policy y X-XSS-Protection"
+
+  security_headers_config {
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
+    }
+    content_type_options {
+      override = true
+    }
+    frame_options {
+      frame_option = "SAMEORIGIN"
+      override     = false
+    }
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = false
+    }
+    xss_protection {
+      mode_block = true
+      protection = true
+      override   = false
+    }
+  }
 }
 
 locals {
   cache_optimizada       = data.aws_cloudfront_cache_policy.optimizada.id
   cache_deshabilitada    = data.aws_cloudfront_cache_policy.deshabilitada.id
   origen_todo_menos_host = data.aws_cloudfront_origin_request_policy.todo_menos_host.id
-  cabeceras_seguras      = data.aws_cloudfront_response_headers_policy.seguras.id
+  cabeceras_seguras      = aws_cloudfront_response_headers_policy.seguras.id
 }
 
 # aws-s3-enable-bucket-logging: Sin logs de acceso: CloudFront es el único lector y el contenido es público.
@@ -40,7 +67,6 @@ resource "aws_s3_bucket" "web" {
   #checkov:skip=CKV_AWS_18:Sin logs de acceso: CloudFront es el unico lector y sirve contenido publico
   #checkov:skip=CKV_AWS_144:Sin replicacion: el build se regenera desde el repositorio
   #checkov:skip=CKV_AWS_145:SSE-S3 basta: son archivos estaticos publicos; con KMS el OAC exigiria permisos extra en la clave
-  #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: ningun consumidor
   bucket = "${var.nombre_proyecto}-web-${data.aws_caller_identity.actual.account_id}"
 
   tags = var.etiquetas_comunes
@@ -171,7 +197,6 @@ resource "aws_cloudfront_distribution" "principal" {
   #checkov:skip=CKV_AWS_68:WAF diferido: se enciende solo en la demostracion de seguridad (costo por regla); la variable arn_waf lo conecta
   #checkov:skip=CKV_AWS_86:Sin logs de acceso de CloudFront en el PMV: costo y mantenimiento sin RNF que los pida
   #checkov:skip=CKV_AWS_174:Sin dominio propio la distribucion usa el certificado por defecto, que no permite fijar TLS minimo
-  #checkov:skip=CKV2_AWS_32:Las cabeceras de seguridad se aplican con la politica gestionada SecurityHeadersPolicy
   #checkov:skip=CKV_AWS_310:Sin origen de respaldo: la disponibilidad la da el ALB en dos zonas
   #checkov:skip=CKV_AWS_374:Sin restriccion geografica: los dueños pueden consultar desde cualquier pais
   enabled             = true
@@ -301,4 +326,11 @@ resource "aws_s3_bucket_cors_configuration" "evidencias" {
     allowed_headers = ["*"]
     max_age_seconds = 3000
   }
+}
+
+# Avisos de eventos del bucket hacia EventBridge: no cuesta nada y deja los eventos disponibles para quien los quiera
+# consumir mañana. Hoy ninguna regla los escucha.
+resource "aws_s3_bucket_notification" "web" {
+  bucket      = aws_s3_bucket.web.id
+  eventbridge = true
 }

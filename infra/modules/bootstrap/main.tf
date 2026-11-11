@@ -41,7 +41,6 @@ resource "aws_kms_alias" "estado" {
 resource "aws_s3_bucket" "estado" {
   #checkov:skip=CKV_AWS_18:Sin bucket de logs de acceso: costo y mantenimiento sin RNF que lo exija; el bucket es versionado, cifrado y con prevent_destroy (CloudTrail queda fuera del PMV)
   #checkov:skip=CKV_AWS_144:Sin replicación entre regiones: el estado se reconstruye con terraform import y el versionado cubre el borrado accidental
-  #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: ningún consumidor las necesita
   bucket = local.nombre_bucket
 
   lifecycle {
@@ -117,4 +116,11 @@ resource "aws_s3_bucket_policy" "estado" {
   })
 
   depends_on = [aws_s3_bucket_public_access_block.estado]
+}
+
+# Avisos de eventos del bucket hacia EventBridge: no cuesta nada y deja los eventos disponibles para quien los quiera
+# consumir mañana. Hoy ninguna regla los escucha.
+resource "aws_s3_bucket_notification" "estado" {
+  bucket      = aws_s3_bucket.estado.id
+  eventbridge = true
 }
