@@ -173,14 +173,16 @@ resource "aws_security_group" "endpoints" {
   tags = merge(var.etiquetas_comunes, { Name = "${var.nombre_proyecto}-sg-endpoints" })
 }
 
-resource "aws_vpc_security_group_ingress_rule" "alb_desde_cloudfront" {
-  #checkov:skip=CKV_AWS_260:No es 0.0.0.0/0: el origen es la lista de prefijos gestionada de CloudFront
+# Regla suelta (aws_security_group_rule) y no aws_vpc_security_group_ingress_rule: Checkov solo reconoce la lista de
+# prefijos de CloudFront en el primer tipo y, con el segundo, la marca como si abriera el puerto 80 a todo internet.
+resource "aws_security_group_rule" "alb_desde_cloudfront" {
+  type              = "ingress"
   security_group_id = aws_security_group.alb.id
   description       = "HTTP desde los origenes de CloudFront (TLS termina en CloudFront)"
-  ip_protocol       = "tcp"
+  protocol          = "tcp"
   from_port         = 80
   to_port           = 80
-  prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront.id
+  prefix_list_ids   = [data.aws_ec2_managed_prefix_list.cloudfront.id]
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_hacia_api" {
