@@ -40,7 +40,6 @@ resource "aws_s3_bucket" "web" {
   #checkov:skip=CKV_AWS_18:Sin logs de acceso: CloudFront es el unico lector y sirve contenido publico
   #checkov:skip=CKV_AWS_144:Sin replicacion: el build se regenera desde el repositorio
   #checkov:skip=CKV_AWS_145:SSE-S3 basta: son archivos estaticos publicos; con KMS el OAC exigiria permisos extra en la clave
-  #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: ningun consumidor
   bucket = "${var.nombre_proyecto}-web-${data.aws_caller_identity.actual.account_id}"
 
   tags = var.etiquetas_comunes
@@ -301,4 +300,11 @@ resource "aws_s3_bucket_cors_configuration" "evidencias" {
     allowed_headers = ["*"]
     max_age_seconds = 3000
   }
+}
+
+# Avisos de eventos del bucket hacia EventBridge: no cuesta nada y deja los eventos disponibles para quien los quiera
+# consumir mañana. Hoy ninguna regla los escucha.
+resource "aws_s3_bucket_notification" "web" {
+  bucket      = aws_s3_bucket.web.id
+  eventbridge = true
 }
