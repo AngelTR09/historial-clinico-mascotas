@@ -1,20 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { esquemaSolicitudContactoPublico } from "@hcm/shared";
-import { AlertTriangle, BadgeCheck, FileCheck2, HeartPulse, MessageSquareQuote, PawPrint, ShieldCheck } from "lucide-react";
+import { HeartPulse, MessageSquareQuote, PawPrint, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { api, ErrorApi } from "../../api/client";
+import { Aviso } from "../../components/ui/aviso";
+import { claseBoton } from "../../components/ui/boton";
+import { Campo } from "../../components/ui/campo";
+import { InsigniaConfianza } from "../../components/ui/confidence-badge";
+import { Panel, PanelCabecera, PanelCuerpo } from "../../components/ui/panel";
+import { entrada } from "../../lib/entrada";
+import { unirDatos } from "../../lib/texto";
 const ETIQUETA_ESTADO = {
     al_dia: "Vacunas al día",
     atrasado: "Vacunas atrasadas",
     sin_registro: "Sin registro de vacunas",
-};
-const ETIQUETA_CONFIANZA = {
-    verificado: { texto: "Validada por veterinario", icono: BadgeCheck, clase: "text-pine" },
-    con_evidencia: { texto: "Con foto de respaldo · sin validar", icono: FileCheck2, clase: "text-gold" },
-    declarado: { texto: "Declarada por el dueño · sin validar", icono: null, clase: "text-ink-soft" },
 };
 function formatearEdad(meses) {
     if (meses === null || meses === undefined) {
@@ -34,9 +36,9 @@ function formatearFecha(fechaIso) {
 const ETIQUETA_ESTERILIZADA = { true: "Sí", false: "No" };
 
 function FilaDato({ etiqueta, children }) {
-    return (<div className="flex items-baseline justify-between gap-4 text-sm">
-      <dt className="shrink-0 text-ink-soft">{etiqueta}</dt>
-      <dd className="text-right font-medium text-ink">{children}</dd>
+    return (<div className="grid grid-cols-1 gap-0.5 border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0 sm:grid-cols-[10rem_1fr] sm:gap-4">
+      <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft">{etiqueta}</dt>
+      <dd className="text-ink">{children}</dd>
     </div>);
 }
 
@@ -55,133 +57,124 @@ export function PaginaPerfilPublico() {
         mutationFn: (values) => api.post("/public/contact", { ...values, tokenQr: qrToken }),
     });
     if (consultaPerfil.isLoading) {
-        return (<div className="mx-auto min-h-screen max-w-md bg-paper px-4 py-10 sm:px-6">
-        <div className="animate-pulse overflow-hidden rounded-2xl border border-sand bg-paper-raised shadow-[0_1px_2px_rgba(27,35,31,0.06)]">
-          <div className="h-2 bg-sand/60"/>
-          <div className="p-6 text-center">
-            <div className="mx-auto mb-4 h-28 w-28 rounded-full bg-sand/50"/>
-            <div className="mx-auto mb-2 h-4 w-1/2 rounded bg-sand/50"/>
-            <div className="mx-auto h-3 w-1/3 rounded bg-sand/50"/>
-          </div>
-        </div>
+        return (<div className="mx-auto min-h-screen max-w-reading bg-canvas px-4 py-10 sm:px-6">
+        <Panel className="animate-pulse">
+          <div className="h-2 bg-surface-sunken"/>
+          <PanelCuerpo className="text-center">
+            <div className="mx-auto mb-4 h-28 w-28 rounded-full bg-surface-sunken"/>
+            <div className="mx-auto mb-2 h-4 w-1/2 rounded bg-surface-sunken"/>
+            <div className="mx-auto h-3 w-1/3 rounded bg-surface-sunken"/>
+          </PanelCuerpo>
+        </Panel>
       </div>);
     }
     if (consultaPerfil.isError) {
         const noEncontrado = consultaPerfil.error instanceof ErrorApi && consultaPerfil.error.status === 404;
-        return (<div className="mx-auto max-w-md px-4 py-16 text-center sm:px-6">
-        <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-gold"/>
-        <p className="text-ink">
-          {noEncontrado
+        return (<div className="mx-auto min-h-screen max-w-reading bg-canvas px-4 py-16 sm:px-6">
+        <Aviso variante={noEncontrado ? "neutro" : "peligro"} titulo={noEncontrado ? "Placa no encontrada" : "No se pudo cargar la ficha"}>
+          <p>
+            {noEncontrado
                 ? "No se encontró ninguna mascota con este código QR."
-                : "No se pudo cargar la ficha. Revisa tu conexión e intenta de nuevo."}
-        </p>
-        {!noEncontrado && (<button type="button" onClick={() => consultaPerfil.refetch()} className="mt-4 min-h-11 rounded-md bg-ink px-4 text-sm font-medium text-white hover:bg-ink/85">
-            Reintentar
-          </button>)}
+                : "Revisa tu conexión e intenta de nuevo."}
+          </p>
+          {!noEncontrado && (<button type="button" onClick={() => consultaPerfil.refetch()} className={claseBoton({ variante: "secundaria", extra: "mt-3" })}>
+              Reintentar
+            </button>)}
+        </Aviso>
       </div>);
     }
     const perfil = consultaPerfil.data;
-    return (<div className="mx-auto min-h-screen max-w-md bg-paper px-4 py-10 sm:px-6">
-      {/* La ficha reproduce la placa física: una franja superior como la
-            cinta de un carnet, y el estado de vacunación como su sello. */}
-      <div className="overflow-hidden rounded-2xl border border-sand bg-paper-raised shadow-[0_1px_2px_rgba(27,35,31,0.06)]">
-        <div className={`h-2 ${perfil.estaExtraviada ? "bg-clay" : "bg-pine"}`}/>
-        <div className="p-6 text-center">
-          {perfil.urlFoto ? (<img src={perfil.urlFoto} alt={perfil.nombreMascota ?? "mascota"} className="mx-auto mb-4 h-36 w-36 rounded-full object-cover ring-4 ring-paper-raised shadow-[var(--shadow-lift)]"/>) : (<div className="mx-auto mb-4 flex h-36 w-36 items-center justify-center rounded-full bg-pine-tint">
-              <PawPrint className="h-14 w-14 text-pine"/>
-            </div>)}
+    const hayIdentificacion = perfil.colorSenas || perfil.temperamento || perfil.esterilizada !== null;
+    return (<div className="min-h-screen bg-canvas">
+      <main id="contenido" className="mx-auto max-w-reading space-y-6 px-4 py-8 sm:px-6 sm:py-10">
+        {/* Extraviada: un solo aviso sólido arriba de todo, antes que cualquier otro dato. */}
+        {perfil.estaExtraviada && (<Aviso variante="extraviada" titulo="Esta mascota fue reportada como extraviada">
+            {perfil.extraviadaDesde && <p>Desde el {formatearFecha(perfil.extraviadaDesde)}.</p>}
+            <p>Si la encontraste, contacta al dueño desde el formulario de esta ficha.</p>
+          </Aviso>)}
 
-          <h1 className="font-display text-2xl font-semibold text-ink">{perfil.nombreMascota ?? "Mascota"}</h1>
-          <p className="mb-4 text-sm capitalize text-ink-soft">
-            {[perfil.especie, perfil.raza, perfil.sexo, formatearEdad(perfil.edadMeses)].filter(Boolean).join(" · ")}
-          </p>
+        {/* Identidad: la ficha reproduce la placa; el estado de vacunación es su sello. */}
+        <Panel>
+          <PanelCuerpo className="text-center">
+            {perfil.urlFoto ? (<img src={perfil.urlFoto} alt={perfil.nombreMascota ?? "mascota"} className="mx-auto mb-4 h-36 w-36 rounded-full border border-border object-cover shadow-sm"/>) : (<div className="mx-auto mb-4 flex h-36 w-36 items-center justify-center rounded-full border border-border bg-pine-tint">
+                <PawPrint className="h-14 w-14 text-pine-ink" aria-hidden="true"/>
+              </div>)}
+            <h1 className="font-display text-4xl font-semibold text-ink">{perfil.nombreMascota ?? "Mascota"}</h1>
+            <p className="mt-1 text-ink-soft">
+              {unirDatos([perfil.especie, perfil.raza, perfil.sexo, formatearEdad(perfil.edadMeses)])}
+            </p>
+            <p className="mt-3 flex items-center justify-center gap-2 text-sm font-medium text-ink">
+              <ShieldCheck className="h-4 w-4 text-pine" aria-hidden="true"/>
+              {ETIQUETA_ESTADO[perfil.estadoVacunacion]}
+            </p>
+          </PanelCuerpo>
+        </Panel>
 
-          {perfil.estaExtraviada && (<div className="mb-4 rounded-md bg-clay-tint p-3 text-sm font-medium text-clay-dark">
-              Esta mascota fue reportada como extraviada
-              {perfil.extraviadaDesde && <span className="block text-xs font-normal">Desde el {formatearFecha(perfil.extraviadaDesde)}</span>}
-            </div>)}
+        {perfil.alertasMedicas && (<Panel tono="alerta" role="alert">
+            <PanelCabecera tono="alerta">
+              <h2 className="flex items-center gap-2 text-lg font-semibold"><HeartPulse className="h-5 w-5" aria-hidden="true"/> Alerta médica</h2>
+            </PanelCabecera>
+            <PanelCuerpo><p className="font-medium text-ink">{perfil.alertasMedicas}</p></PanelCuerpo>
+          </Panel>)}
 
-          {perfil.alertasMedicas && (<div role="alert" className="mb-4 rounded-md border-2 border-clay bg-clay-tint p-3 text-left">
-              <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-clay-dark">
-                <HeartPulse className="h-4 w-4"/> Alerta médica
-              </p>
-              <p className="text-sm font-medium text-ink">{perfil.alertasMedicas}</p>
-            </div>)}
-
-          <div className="mb-4 flex items-center justify-center gap-2 text-sm text-ink-soft">
-            <ShieldCheck className="h-4 w-4 text-gold"/>
-            {ETIQUETA_ESTADO[perfil.estadoVacunacion]}
-          </div>
-
-          {(perfil.colorSenas || perfil.temperamento || perfil.esterilizada !== null) && (<div className="mb-4 border-t border-sand pt-4 text-left">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Cómo identificarla</h2>
-              <dl className="space-y-2">
+        {hayIdentificacion && (<Panel>
+            <PanelCabecera titulo="Cómo identificarla"/>
+            <PanelCuerpo>
+              <dl>
                 {perfil.colorSenas && <FilaDato etiqueta="Color y señas">{perfil.colorSenas}</FilaDato>}
                 {perfil.temperamento && <FilaDato etiqueta="Temperamento">{perfil.temperamento}</FilaDato>}
                 {perfil.esterilizada !== null && <FilaDato etiqueta="Esterilizada">{ETIQUETA_ESTERILIZADA[perfil.esterilizada]}</FilaDato>}
               </dl>
-            </div>)}
+            </PanelCuerpo>
+          </Panel>)}
 
-          {perfil.notaDelDueno && (<div className="mb-4 rounded-md border border-sand bg-pine-tint p-3 text-left">
-              <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-pine-dark">
-                <MessageSquareQuote className="h-4 w-4"/> Nota del dueño
+        {perfil.notaDelDueno && (<Panel tono="hundido">
+            <PanelCuerpo>
+              <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-pine-ink">
+                <MessageSquareQuote className="h-4 w-4" aria-hidden="true"/> Nota del dueño
               </p>
-              <p className="text-sm text-ink">{perfil.notaDelDueno}</p>
-            </div>)}
+              <p className="text-ink">{perfil.notaDelDueno}</p>
+            </PanelCuerpo>
+          </Panel>)}
 
-          {perfil.vacunas.length > 0 && (<div className="mb-4 border-t border-sand pt-4 text-left">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Últimas vacunas</h2>
-              <ul className="space-y-2">
-                {perfil.vacunas.map((vacuna, indice) => {
-                const confianza = ETIQUETA_CONFIANZA[vacuna.nivelConfianza];
-                const Icono = confianza.icono;
-                return (<li key={`${vacuna.nombre}-${vacuna.fecha}-${indice}`} className="flex items-start justify-between gap-3 text-sm">
-                      <div>
-                        <p className="font-medium text-ink">{vacuna.nombre}</p>
-                        <p className={`flex items-center gap-1 text-xs ${confianza.clase}`}>
-                          {Icono && <Icono className="h-3 w-3"/>}
-                          {confianza.texto}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-xs text-ink-soft">{formatearFecha(vacuna.fecha)}</span>
-                    </li>);
-            })}
+        {perfil.vacunas.length > 0 && (<Panel>
+            <PanelCabecera titulo="Últimas vacunas"/>
+            <PanelCuerpo>
+              <ul>
+                {perfil.vacunas.map((vacuna, indice) => (<li key={`${vacuna.nombre}-${vacuna.fecha}-${indice}`} className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{vacuna.nombre}</p>
+                      <div className="mt-1"><InsigniaConfianza nivel={vacuna.nivelConfianza}/></div>
+                    </div>
+                    <time className="shrink-0 font-mono text-sm text-ink-soft">{formatearFecha(vacuna.fecha)}</time>
+                  </li>))}
               </ul>
-            </div>)}
+            </PanelCuerpo>
+          </Panel>)}
 
-          {perfil.mensajeContacto && <p className="mb-4 text-sm text-ink-soft">{perfil.mensajeContacto}</p>}
-
-          {perfil.estaExtraviada && (<>
-              {enviarContacto.isSuccess ? (<p className="rounded-md bg-pine-tint p-3 text-sm font-medium text-pine-dark">
-                  Mensaje enviado. El dueño no ve tus datos aquí; te contactará por el medio que dejaste.
-                </p>) : mostrarFormulario ? (<form className="space-y-3 text-left" onSubmit={handleSubmit((values) => enviarContacto.mutate(values))}>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-ink">Tu nombre</label>
-                    <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 text-sm focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("nombreContacto")}/>
-                    {errors.nombreContacto && <p className="mt-1 text-xs text-clay-dark">{errors.nombreContacto.message}</p>}
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-ink">Tu teléfono o correo</label>
-                    <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 text-sm focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("canalContacto")}/>
-                    {errors.canalContacto && <p className="mt-1 text-xs text-clay-dark">{errors.canalContacto.message}</p>}
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-ink">Mensaje</label>
-                    <textarea rows={3} className="w-full rounded-md border border-sand-dark px-3 py-2 text-sm focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder="Dónde la viste, cómo está..." {...register("mensaje")}/>
-                    {errors.mensaje && <p className="mt-1 text-xs text-clay-dark">{errors.mensaje.message}</p>}
-                  </div>
-                  {enviarContacto.isError && <p className="text-sm text-clay-dark">No se pudo enviar el mensaje. Intenta de nuevo.</p>}
-                  <button type="submit" disabled={enviarContacto.isPending} className="min-h-12 w-full rounded-md bg-ink text-sm font-medium text-white hover:bg-ink/85 disabled:opacity-50">
+        {perfil.estaExtraviada && (<Panel>
+            <PanelCabecera titulo="Contactar al dueño"/>
+            <PanelCuerpo>
+              {perfil.mensajeContacto && <p className="mb-4 text-ink-soft">{perfil.mensajeContacto}</p>}
+              {enviarContacto.isSuccess ? (<Aviso variante="info">
+                  <p>Mensaje enviado. El dueño no ve tus datos aquí; te contactará por el medio que dejaste.</p>
+                </Aviso>) : mostrarFormulario ? (<form className="space-y-4" noValidate onSubmit={handleSubmit((values) => enviarContacto.mutate(values))}>
+                  <Campo etiqueta="Tu nombre" autoComplete="name" error={errors.nombreContacto?.message} {...register("nombreContacto")} {...entrada("nombreContacto")}/>
+                  <Campo etiqueta="Tu teléfono o correo" autoComplete="off" error={errors.canalContacto?.message} {...register("canalContacto")} {...entrada("canalContacto")}/>
+                  <Campo etiqueta="Mensaje" comoEtiqueta="textarea" rows={3} className="py-2" placeholder="Dónde la viste, cómo está..." error={errors.mensaje?.message} {...register("mensaje")} {...entrada("mensaje")}/>
+                  {enviarContacto.isError && <Aviso variante="peligro"><p>No se pudo enviar el mensaje. Intenta de nuevo.</p></Aviso>}
+                  <button type="submit" disabled={enviarContacto.isPending} className={claseBoton({ tamano: "lg", bloque: true })}>
                     {enviarContacto.isPending ? "Enviando..." : "Enviar mensaje"}
                   </button>
-                </form>) : (<button type="button" onClick={() => setMostrarFormulario(true)} className="min-h-12 w-full rounded-md bg-ink text-sm font-medium text-white hover:bg-ink/85">
+                </form>) : (<button type="button" onClick={() => setMostrarFormulario(true)} className={claseBoton({ tamano: "lg", bloque: true })}>
                   Contactar al dueño
                 </button>)}
-            </>)}
-          <p className="mt-2 border-t border-sand pt-4 text-xs text-ink-soft">
-            Ficha pública de Historial Clínico Mascotas. No muestra datos personales del dueño.
-          </p>
-        </div>
-      </div>
+            </PanelCuerpo>
+          </Panel>)}
+
+        <p className="text-center text-xs text-ink-soft">
+          Ficha pública de Historial Clínico Mascotas. No muestra datos personales del dueño.
+        </p>
+      </main>
     </div>);
 }
