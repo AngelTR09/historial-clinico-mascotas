@@ -5,7 +5,7 @@ import { ArrowLeft, Bug, CloudUpload, History, Paperclip, Pencil, Stethoscope, S
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../../api/client";
+import { api, esFalloTransitorio } from "../../api/client";
 import { SelectorFotoMascota } from "../../components/pets/pet-photo-picker";
 import { prepararFotoMascota, subirFotoMascota } from "../../lib/pet-photo";
 import { InsigniaConfianza } from "../../components/ui/confidence-badge";
@@ -16,6 +16,15 @@ import { EncabezadoPagina } from "../../components/ui/page-header";
 import { useSubidasPendientesDeMascota } from "../../hooks/use-offline-queue";
 import { etiquetaTipoEvento, TIPOS_EVENTO_SALUD } from "../../lib/event-types";
 import { encolarSubidaPendiente } from "../../lib/offline-queue";
+import { claseBoton } from "../../components/ui/boton";
+import { Aviso } from "../../components/ui/aviso";
+import { PUNTO_CONFIANZA } from "../../components/ui/confidence-badge";
+import { EtiquetaIdentidad } from "../../components/pets/identity-tag";
+import { Panel, PanelCabecera, PanelCuerpo } from "../../components/ui/panel";
+import { descargarSvgPlacaQr, generarSvgPlacaQr } from "../../lib/qr-placa";
+import { entrada } from "../../lib/entrada";
+import { Entrada } from "../../components/ui/campo";
+import { HACE_30_ANIOS, HOY } from "../../lib/fechas";
 const ICONO_EVENTO = {
     vacuna: Syringe,
     chequeo: Stethoscope,
@@ -46,7 +55,7 @@ export function PaginaDetalleMascota() {
     }
     const [claveIdempotencia, setClaveIdempotencia] = useState(() => crypto.randomUUID());
     const [eventoCorrigiendo, setEventoCorrigiendo] = useState(null);
-    const { register, handleSubmit, reset, formState: { errors }, } = useForm({
+    const { register, handleSubmit, reset, trigger, formState: { errors }, } = useForm({
         resolver: zodResolver(esquemaCreacionEventoSalud),
         defaultValues: { idMascota: petId, tipo: "chequeo", claveIdempotencia },
     });
@@ -93,7 +102,7 @@ export function PaginaDetalleMascota() {
                 await api.post("/health-events", input);
             }
             catch (err) {
-                if (err instanceof TypeError) {
+                if (esFalloTransitorio(err)) {
                     await encolarSubidaPendiente({
                         clase: "evento-salud",
                         id: input.claveIdempotencia,
@@ -143,7 +152,7 @@ export function PaginaDetalleMascota() {
                 queryClient.invalidateQueries({ queryKey: ["health-events", petId] });
             }
             catch (err) {
-                if (err instanceof TypeError) {
+                if (esFalloTransitorio(err)) {
                     await encolar();
                     queryClient.invalidateQueries({ queryKey: ["offline-queue"] });
                     return;
@@ -155,19 +164,19 @@ export function PaginaDetalleMascota() {
             setIdEventoSubiendo(null);
         }
     }
-    return (<div className="min-h-screen bg-paper">
+    return (<div className="min-h-screen bg-canvas">
       <EncabezadoPagina mostrarCerrarSesion/>
-      <main id="contenido" className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+      <main id="contenido" className="mx-auto max-w-page px-4 py-6 sm:px-6 sm:py-8">
         <Link to="/dashboard" className="mb-4 inline-flex min-h-11 items-center gap-1 text-sm text-ink-soft hover:text-ink">
           <ArrowLeft className="h-4 w-4"/> Mis mascotas
         </Link>
 
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex items-center gap-4 border-b border-border-strong pb-4">
           <SelectorFotoMascota urlFoto={mascota?.urlFoto} nombre={mascota?.nombre} alElegir={(archivo) => cambiarFoto.mutate(archivo)} ocupado={cambiarFoto.isPending} error={cambiarFoto.isError ? cambiarFoto.error.message : null} tamano="md"/>
           <div>
-            <h1 className="font-display text-2xl font-semibold text-ink">{mascota ? mascota.nombre : "Historial de salud"}</h1>
-            {mascota && (<p className="text-sm capitalize text-ink-soft">
-                {mascota.especie} · <span className="font-mono">{mascota.codigoPublico}</span>
+            <h1 className="font-display text-3xl font-semibold text-ink">{mascota ? mascota.nombre : "Historial de salud"}</h1>
+            {mascota && (<p className="text-sm text-ink-soft">
+                {mascota.especie.charAt(0).toUpperCase() + mascota.especie.slice(1)} · <span className="font-mono">{mascota.codigoPublico}</span>
               </p>)}
           </div>
         </div>
@@ -176,25 +185,26 @@ export function PaginaDetalleMascota() {
             <AvisoError mensaje="No se pudo cargar los datos de la mascota." alReintentar={() => consultaMascotas.refetch()}/>
           </div>)}
 
-        {mascota && <FormularioDatosPublicosMascota key={mascota.id} mascota={mascota}/>}
-
-        <div className="mb-8">
+        <div className="grid gap-6 md:grid-cols-[2fr_1fr] md:items-start">
+          <div className="space-y-6">
+        <section aria-labelledby="titulo-historial">
+          <h2 id="titulo-historial" className="mb-4 border-b border-border-strong pb-2 font-display text-2xl font-semibold text-ink">Historial de salud</h2>
           {consultaEventos.isLoading && <EsqueletoLista />}
           {consultaEventos.isError && (<AvisoError mensaje="No se pudo cargar el historial de salud." alReintentar={() => consultaEventos.refetch()}/>)}
           {consultaEventos.data?.length === 0 && eventosPendientes.length === 0 && (<p className="text-sm text-ink-soft">Sin eventos todavía.</p>)}
 
           {/* Ledger cronológico: una regla vertical conecta cada evento, porque
             un historial de salud sí es una secuencia real en el tiempo. */}
-          <div className="relative space-y-4 border-l-2 border-sand pl-6">
+          <div className="relative space-y-4 border-l-2 border-border pl-8">
             {consultaEventos.data?.map((evento) => {
             const Icono = ICONO_EVENTO[evento.tipo];
             const reemplazadoPor = consultaEventos.data?.find((e) => e.corrigeEventoId === evento.id);
             const corrigeOriginal = evento.corrigeEventoId
                 ? consultaEventos.data?.find((e) => e.id === evento.corrigeEventoId)
                 : undefined;
-            return (<div key={evento.id} className={`relative rounded-lg border border-sand bg-paper-raised p-4 ${reemplazadoPor ? "opacity-60" : ""}`}>
-                  <div className="absolute -left-[31px] top-4 flex h-6 w-6 items-center justify-center rounded-full border-2 border-paper bg-pine">
-                    <Icono className="h-3.5 w-3.5 text-white"/>
+            return (<div key={evento.id} className={`relative rounded-lg border border-border bg-surface p-4 shadow-xs ${reemplazadoPor ? "opacity-60" : ""}`}>
+                  <div className={`absolute -left-[41px] top-3 flex h-8 w-8 items-center justify-center rounded-full border-2 ${PUNTO_CONFIANZA[evento.nivelConfianza]}`}>
+                    <Icono className="h-4 w-4" aria-hidden="true"/>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -213,13 +223,13 @@ export function PaginaDetalleMascota() {
                           <History className="h-3.5 w-3.5"/>
                           Reemplazado por una corrección del {reemplazadoPor.fechaEvento}
                         </p>)}
-                      {conteoAdjuntosPendientesPorEvento.has(evento.id) && (<p className="mt-1 flex items-center gap-1 text-xs text-gold-dark">
+                      {conteoAdjuntosPendientesPorEvento.has(evento.id) && (<p className="mt-1 flex items-center gap-1 text-xs text-pine-ink">
                           <CloudUpload className="h-3.5 w-3.5"/>
                           {conteoAdjuntosPendientesPorEvento.get(evento.id)} adjunto(s) pendiente(s) de subir
                         </p>)}
                     </div>
                     <div className="flex items-center gap-4">
-                      <button type="button" onClick={() => iniciarCorreccion(evento)} className="flex min-h-9 items-center gap-1 whitespace-nowrap text-sm text-ink-soft hover:text-ink">
+                      <button type="button" onClick={() => iniciarCorreccion(evento)} className={claseBoton({ variante: "fantasma", tamano: "sm" })}>
                         <Pencil className="h-4 w-4"/> Corregir
                       </button>
                       <label className="flex min-h-9 cursor-pointer items-center gap-1 whitespace-nowrap text-sm text-ink-soft hover:text-ink">
@@ -238,66 +248,78 @@ export function PaginaDetalleMascota() {
         })}
             {eventosPendientes.map((item) => {
             const Icono = ICONO_EVENTO[item.datos.tipo];
-            return (<div key={item.id} className="relative rounded-lg border border-gold/30 bg-gold-tint p-4">
-                  <div className="absolute -left-[31px] top-4 flex h-6 w-6 items-center justify-center rounded-full border-2 border-paper bg-gold">
-                    <Icono className="h-3.5 w-3.5 text-white"/>
+            return (<div key={item.id} className="relative rounded-lg border border-dashed border-pine bg-pine-tint p-4">
+                  <div className="absolute -left-[41px] top-3 flex h-8 w-8 items-center justify-center rounded-full border-2 border-pine bg-pine-tint text-pine-ink">
+                    <Icono className="h-4 w-4" aria-hidden="true"/>
                   </div>
                   <p className="font-medium capitalize text-ink">
                     {item.datos.tipo} · {item.datos.textoOriginal}
                   </p>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-gold-dark">
+                  <p className="mt-1 flex items-center gap-1 text-sm text-pine-ink">
                     <CloudUpload className="h-3.5 w-3.5"/>
                     {item.datos.fechaEvento} · pendiente de sincronizar{item.ultimoError ? ` (error: ${item.ultimoError})` : ""}
                   </p>
                 </div>);
         })}
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-xl border border-sand bg-paper-raised p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-ink">{eventoCorrigiendo ? "Corregir evento" : "Registrar evento"}</h2>
-            {eventoCorrigiendo && (<button type="button" onClick={cancelarCorreccion} className="flex min-h-9 items-center gap-1 text-sm text-ink-soft hover:text-ink">
+        <Panel>
+          <PanelCabecera>
+            <h2 className="text-lg font-semibold">{eventoCorrigiendo ? "Corregir evento" : "Registrar evento"}</h2>
+            {eventoCorrigiendo && (<button type="button" onClick={cancelarCorreccion} className={claseBoton({ variante: "fantasma", tamano: "sm" })}>
                 <X className="h-3.5 w-3.5"/> Cancelar
               </button>)}
-          </div>
-          {eventoCorrigiendo && (<p className="mb-3 flex items-center gap-1 rounded-md bg-gold-tint p-2 text-xs text-gold-dark">
-              <History className="h-3.5 w-3.5 shrink-0"/>
-              Corrigiendo &quot;{eventoCorrigiendo.textoOriginal}&quot; del {eventoCorrigiendo.fechaEvento}. El original se conserva y queda marcado
-              como reemplazado (RN 2: un evento no se edita ni se borra).
-            </p>)}
+          </PanelCabecera>
+          <PanelCuerpo>
+          {eventoCorrigiendo && (<Aviso variante="neutro" className="mb-4">
+              <p>Corrigiendo &quot;{eventoCorrigiendo.textoOriginal}&quot; del {eventoCorrigiendo.fechaEvento}. El original se conserva y queda marcado
+              como reemplazado (RN 2: un evento no se edita ni se borra).</p>
+            </Aviso>)}
           <form className="grid grid-cols-1 gap-3 sm:grid-cols-2" onSubmit={handleSubmit((values) => crearEvento.mutate({ ...values, idMascota: petId, claveIdempotencia, corrigeEventoId: eventoCorrigiendo?.id }))}>
             <input type="hidden" {...register("idMascota")} value={petId}/>
             <input type="hidden" {...register("claveIdempotencia")} value={claveIdempotencia}/>
             <div>
-              <label className="mb-1 block text-sm font-medium text-ink">Tipo</label>
-              <select className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("tipo")}>
+              <label className="mb-2 block text-sm font-medium text-ink">Tipo</label>
+              <select className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" {...register("tipo")}>
                 {TIPOS_EVENTO_SALUD.map((tipo) => (<option key={tipo} value={tipo}>
                     {etiquetaTipoEvento(tipo)}
                   </option>))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-ink">Fecha</label>
-              <input type="date" className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("fechaEvento")}/>
-              {errors.fechaEvento && <p className="mt-1 text-xs text-clay-dark">{errors.fechaEvento.message}</p>}
+              <label className="mb-2 block text-sm font-medium text-ink">Fecha</label>
+              <input type="date" max={HOY} min={HACE_30_ANIOS} className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" {...register("fechaEvento", { onChange: () => trigger("fechaEvento") })}/>
+              {errors.fechaEvento && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.fechaEvento.message}</p>}
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-ink">Descripción</label>
-              <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" placeholder="Antirrábica, control anual, desparasitación..." {...register("textoOriginal")}/>
-              {errors.textoOriginal && <p className="mt-1 text-xs text-clay-dark">{errors.textoOriginal.message}</p>}
+              <label className="mb-2 block text-sm font-medium text-ink">Descripción</label>
+              <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" placeholder="Antirrábica, control anual, desparasitación..." {...register("textoOriginal")} {...entrada("textoEvento")}/>
+              {errors.textoOriginal && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.textoOriginal.message}</p>}
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-ink">Veterinario (opcional)</label>
-              <input className="w-full min-h-11 rounded-md border border-sand-dark px-3 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20" {...register("nombreProfesional")}/>
+              <label className="mb-2 block text-sm font-medium text-ink">Veterinario (opcional)</label>
+              <Entrada className="w-full min-h-11 rounded-md border border-control-border px-3 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus" {...register("nombreProfesional")} {...entrada("profesional")}/>
             </div>
             <div className="sm:col-span-2">
-              {crearEvento.isError && <p className="mb-2 text-sm text-clay-dark">{crearEvento.error.message}</p>}
-              <button type="submit" disabled={crearEvento.isPending} className="min-h-12 w-full rounded-md bg-pine font-medium text-white hover:bg-pine-dark disabled:opacity-50 sm:w-auto sm:px-6">
+              {crearEvento.isError && <p className="mb-2 text-sm text-clay-ink">{crearEvento.error.message}</p>}
+              <button type="submit" disabled={crearEvento.isPending} className={claseBoton({ tamano: "lg", bloque: "movil" })}>
                 {crearEvento.isPending ? "Guardando..." : eventoCorrigiendo ? "Guardar corrección" : "Registrar evento"}
               </button>
             </div>
           </form>
+          </PanelCuerpo>
+        </Panel>
+          </div>
+          <aside className="space-y-6">
+            {mascota && (<Panel>
+                <PanelCabecera titulo="Placa QR"/>
+                <PanelCuerpo>
+                  <EtiquetaIdentidad vertical codigoPublico={mascota.codigoPublico} nombre={mascota.nombre} urlImagenQr={`data:image/svg+xml;utf8,${encodeURIComponent(generarSvgPlacaQr(`${window.location.origin}/p/${mascota.tokenQr}`))}`} alDescargar={() => descargarSvgPlacaQr(`${window.location.origin}/p/${mascota.tokenQr}`, `placa-qr-${mascota.nombre}`)}/>
+                </PanelCuerpo>
+              </Panel>)}
+            {mascota && <FormularioDatosPublicosMascota key={mascota.id} mascota={mascota}/>}
+          </aside>
         </div>
       </main>
     </div>);

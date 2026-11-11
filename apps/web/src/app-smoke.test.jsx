@@ -94,7 +94,7 @@ describe("panel del dueño", () => {
         await conSesion();
         simularApi([]);
         montar("/dashboard");
-        await waitFor(() => expect(screen.getByText(/Todavía no registraste ninguna mascota/)).toBeTruthy());
+        await waitFor(() => expect(screen.getByText(/Aún no hay mascotas/)).toBeTruthy());
         expect(screen.getByRole("button", { name: "Registrar mascota" })).toBeTruthy();
         expect(screen.getByRole("button", { name: /Agregar una foto/ })).toBeTruthy();
     });
@@ -106,7 +106,7 @@ describe("panel del dueño", () => {
         await waitFor(() => expect(screen.getByText("Luna")).toBeTruthy());
         expect(screen.getByText("TRU-0001-7")).toBeTruthy();
         expect(screen.getByRole("img", { name: "Foto de Luna" }).getAttribute("src")).toBe("http://x.test/luna.jpg");
-        expect(screen.getByRole("link", { name: "Ver historial" }).getAttribute("href")).toBe("/pets/a1");
+        expect(screen.getByRole("link", { name: "Ver historial de Luna" }).getAttribute("href")).toBe("/pets/a1");
         expect(screen.getByRole("button", { name: /Reportar extraviada/ })).toBeTruthy();
         fireEvent.click(screen.getByRole("button", { name: "Ver placa QR de Luna" }));
         const qr = screen.getByRole("img", { name: /Código QR de la placa de Luna/ });
