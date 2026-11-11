@@ -35,21 +35,21 @@ afterEach(cleanup);
 
 describe("PaginaInicioSesion (RNF 03 y 06)", () => {
     it("el dueño entra con correo y contraseña, y la sesión se guarda", async () => {
-        api.post.mockResolvedValue({ token: "token-dueno" });
+        api.post.mockResolvedValue({ token: "token-dueno", rol: "dueno" });
         montar();
         await userEvent.type(screen.getByLabelText("Correo"), "ana@example.com");
         await userEvent.type(screen.getByLabelText("Contraseña"), "Clave-Segura-2026!");
         await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
         await waitFor(() => expect(screen.getByText("panel del dueño")).toBeTruthy());
-        expect(api.post).toHaveBeenCalledWith("/auth/login", { rol: "dueno", correo: "ana@example.com", contrasena: "Clave-Segura-2026!" }, { token: null });
+        expect(api.post).toHaveBeenCalledWith("/auth/login", { correo: "ana@example.com", contrasena: "Clave-Segura-2026!" }, { token: null });
         expect(obtenerToken()).toBe("token-dueno");
     });
 
-    it("el veterinario entra por su rol y su token se guarda aparte", async () => {
-        api.post.mockResolvedValue({ token: "token-vet" });
+    it("el servidor reconoce al veterinario por su cuenta y su token se guarda aparte", async () => {
+        api.post.mockResolvedValue({ token: "token-vet", rol: "veterinario" });
         montar();
-        await userEvent.click(screen.getByLabelText("Soy veterinario"));
+        expect(screen.queryByLabelText("Soy veterinario")).toBeNull();
         await userEvent.type(screen.getByLabelText("Correo"), "vet@example.com");
         await userEvent.type(screen.getByLabelText("Contraseña"), "Clave-Segura-2026!");
         await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
@@ -71,7 +71,7 @@ describe("PaginaInicioSesion (RNF 03 y 06)", () => {
     });
 
     it("una cuenta sin verificar ofrece ir a la pantalla del código", async () => {
-        api.post.mockRejectedValue(new ErrorApi("Debes verificar tu correo con el código que te enviamos", 403));
+        api.post.mockRejectedValue(new ErrorApi("Debes verificar tu correo con el código que te enviamos", 403, { rol: "dueno" }));
         montar();
         await userEvent.type(screen.getByLabelText("Correo"), "ana@example.com");
         await userEvent.type(screen.getByLabelText("Contraseña"), "Clave-Segura-2026!");
@@ -82,10 +82,24 @@ describe("PaginaInicioSesion (RNF 03 y 06)", () => {
         expect(screen.getByText(/ana@example.com/)).toBeTruthy();
     });
 
+    it.each([
+        ["una inyección SQL", "' OR 1=1 --@example.com"],
+        ["una etiqueta de código", "<script>alert(1)</script>@example.com"],
+        ["un correo con espacios", "ana perez@example.com"],
+        ["un texto sin arroba", "no-es-un-correo"],
+    ])("no envía %s como correo", async (_nombre, correo) => {
+        montar();
+        await userEvent.type(screen.getByLabelText("Correo"), correo);
+        await userEvent.type(screen.getByLabelText("Contraseña"), "Clave-Segura-2026!");
+        await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
+        await waitFor(() => expect(screen.getByText(/correo válido/i)).toBeTruthy());
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
     it("no envía con el correo vacío", async () => {
         montar();
         await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
-        await waitFor(() => expect(screen.getByText(/correo/i, { selector: "p" })).toBeTruthy());
+        expect(await screen.findByText(/correo válido/i)).toBeTruthy();
         expect(api.post).not.toHaveBeenCalled();
     });
 });

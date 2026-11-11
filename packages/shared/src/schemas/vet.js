@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { esquemaCorreo, esquemaTextoLibre, esquemaTokenQr, LIMITES } from "./campos.js";
 import { ESTADOS_VETERINARIO } from "../constants.js";
 import { esquemaContrasena, esquemaId, esquemaFechaHoraIso, esquemaTextoNoVacio, textoOpcional } from "./primitives.js";
 export const estadoVeterinarioSchema = z.enum(ESTADOS_VETERINARIO);
@@ -33,11 +34,20 @@ export const esquemaVeterinario = z.object({
 export const esquemaCreacionVeterinario = z
     .object({
     pais: esquemaPais,
-    autoridadEmisora: esquemaTextoNoVacio,
-    numeroLicencia: esquemaTextoNoVacio,
-    identificadorFiscal: textoOpcional(esquemaTextoNoVacio.optional()),
+    autoridadEmisora: esquemaTextoLibre(2, LIMITES.autoridadEmisora, "La autoridad emisora"),
+    // Número de colegiatura: letras, números y separadores usuales (CMVP-12345, 12.345/A).
+    numeroLicencia: z.preprocess((valor) => (typeof valor === "string" ? valor.trim().toUpperCase() : valor), z
+        .string()
+        .min(3, "El número de licencia debe tener al menos 3 caracteres")
+        .max(LIMITES.numeroLicencia, `El número de licencia admite como máximo ${LIMITES.numeroLicencia} caracteres`)
+        .regex(/^[A-Z0-9][A-Z0-9./-]*$/, "El número de licencia solo puede tener letras, números, punto, guion y barra")),
+    identificadorFiscal: textoOpcional(z.preprocess((valor) => (typeof valor === "string" ? valor.replace(/[\s-]/g, "").toUpperCase() : valor), z
+        .string()
+        .min(5, "El identificador fiscal debe tener al menos 5 caracteres")
+        .max(LIMITES.identificadorFiscal, `El identificador fiscal admite como máximo ${LIMITES.identificadorFiscal} caracteres`)
+        .regex(/^[A-Z0-9]+$/, "El identificador fiscal solo puede tener letras y números")).optional()),
     // Con el correo y la contraseña inicia sesión; la cuenta se activa con el código del correo.
-    correo: z.string().trim().toLowerCase().email(),
+    correo: esquemaCorreo,
     contrasena: esquemaContrasena,
 })
     .superRefine((valor, ctx) => {
@@ -51,5 +61,5 @@ export const esquemaCreacionVeterinario = z
  * la placa (sección 3), nunca el `codigoPublico`.
  */
 export const esquemaSolicitudAccesoVeterinarioMascota = z.object({
-    tokenQr: z.string().min(1),
+    tokenQr: esquemaTokenQr,
 });

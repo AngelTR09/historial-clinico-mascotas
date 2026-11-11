@@ -69,12 +69,17 @@ function rutaDe(url) {
 }
 
 describe("foto de la mascota", () => {
+    // Solo las carpetas de las mascotas aisladas de este test: `storage/pets` también guarda las fotos reales de desarrollo.
+    const idsMascotasConFoto = [];
     afterAll(async () => {
-        await rm(path.resolve(config.STORAGE_LOCAL_PATH, "pets"), { recursive: true, force: true });
+        for (const id of idsMascotasConFoto) {
+            await rm(path.resolve(config.STORAGE_LOCAL_PATH, "pets", id), { recursive: true, force: true });
+        }
     });
 
     it("sube la foto con URL firmada, la fija en la mascota y aparece en la ficha del QR", async () => {
         const { idDueno, idMascota, tokenQr } = await crearDuenoYMascotaAislados(rastreador);
+        idsMascotasConFoto.push(idMascota);
         const headers = await encabezadoDe(idDueno);
         const solicitud = await app.inject({ method: "POST", url: `/pets/${idMascota}/photo/upload-url`, headers, payload: { mime: "image/jpeg" } });
         expect(solicitud.statusCode).toBe(200);

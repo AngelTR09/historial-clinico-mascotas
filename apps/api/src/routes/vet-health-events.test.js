@@ -23,6 +23,9 @@ afterEach(async () => {
     await limpiarFixtures(rastreador);
 });
 
+/** Fecha ISO de hace `dias` días (hoy = 0), en UTC como cuenta el servidor. */
+const fechaDeHace = (dias) => new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10);
+
 async function acceso(idMascota, veterinario) {
     const { token } = await puertos.autenticacion.issueVetPetAccessToken(veterinario.id, idMascota);
     return { authorization: `Bearer ${token}` };
@@ -33,7 +36,7 @@ async function registrar(idMascota, headers, cambios = {}) {
         method: "POST",
         url: `/pets/${idMascota}/health-events`,
         headers,
-        payload: { tipo: "chequeo", fechaEvento: "2026-05-01", textoOriginal: "Control general", claveIdempotencia: randomUUID(), ...cambios },
+        payload: { tipo: "chequeo", fechaEvento: fechaDeHace(0), textoOriginal: "Control general", claveIdempotencia: randomUUID(), ...cambios },
     });
     if (respuesta.statusCode === 201) rastreador.eventIds.push(respuesta.json().id);
     return respuesta;
@@ -53,6 +56,23 @@ describe("POST /pets/:idMascota/health-events: el veterinario registra directame
         const auditoria = await db.select().from(registroAuditoria).where(eq(registroAuditoria.idMascota, idMascota));
         expect(auditoria).toHaveLength(1);
         expect(auditoria[0]).toMatchObject({ tipoActor: "veterinario", idActor: veterinario.id, accion: "crear_evento_salud_veterinario" });
+    });
+
+    it("acepta la fecha de hoy y de hace una semana, pero no una atención más antigua ni futura", async () => {
+        const { idMascota } = await crearDuenoYMascotaAislados(rastreador);
+        const veterinario = await crearVeterinarioAislado(rastreador);
+        const headers = await acceso(idMascota, veterinario);
+
+        expect((await registrar(idMascota, headers, { fechaEvento: fechaDeHace(7) })).statusCode).toBe(201);
+        const vieja = await registrar(idMascota, headers, { fechaEvento: fechaDeHace(30) });
+        const muyVieja = await registrar(idMascota, headers, { fechaEvento: "1222-09-08" });
+        const futura = await registrar(idMascota, headers, { fechaEvento: fechaDeHace(-5) });
+
+        expect(vieja.statusCode).toBe(400);
+        expect(vieja.json().issues[0].message).toContain("no puede ser de hace más de 7 días");
+        expect(muyVieja.statusCode).toBe(400);
+        expect(futura.statusCode).toBe(400);
+        expect(await db.select({ id: eventosSalud.id }).from(eventosSalud).where(eq(eventosSalud.idMascota, idMascota))).toHaveLength(1);
     });
 
     it("acepta una desparasitación, que el PDF pide como tipo de registro (RNF 01)", async () => {

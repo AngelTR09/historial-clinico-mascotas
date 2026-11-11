@@ -77,6 +77,24 @@ describe("registro, verificación e inicio de sesión de punta a punta", () => {
         expect(perfil.json().id).toBe(idDueno);
     });
 
+    it("POST /auth/login sin rol reconoce la cuenta y devuelve su rol", async () => {
+        const { datos, idDueno } = await registrarYVerificar();
+        const respuesta = await post("/auth/login", { correo: datos.correo, contrasena: CONTRASENA });
+        expect(respuesta.statusCode).toBe(200);
+        expect(respuesta.json().rol).toBe("dueno");
+        const perfil = await app.inject({ method: "GET", url: "/owners/me", headers: { authorization: `Bearer ${respuesta.json().token}` } });
+        expect(perfil.json().id).toBe(idDueno);
+    });
+
+    it("POST /auth/login rechaza correos con código o SQL antes de tocar la base", async () => {
+        for (const correo of ["' OR 1=1 --@example.com", "a@b.co'; DROP TABLE owners;--", "<script>alert(1)</script>@example.com"]) {
+            const respuesta = await post("/auth/login", { correo, contrasena: CONTRASENA });
+            expect(respuesta.statusCode, correo).toBe(400);
+        }
+        const respuesta = await post("/auth/login", { correo: "a@example.com", contrasena: "mala\u0000clave" });
+        expect(respuesta.statusCode).toBe(400);
+    });
+
     it("credenciales malas: 401 con el mismo cuerpo para correo inexistente y contraseña errónea", async () => {
         const { datos } = await registrarYVerificar();
         const inexistente = await post("/auth/login", { rol: "dueno", correo: `nadie-${randomUUID()}@example.com`, contrasena: CONTRASENA });
@@ -93,6 +111,7 @@ describe("registro, verificación e inicio de sesión de punta a punta", () => {
         const respuesta = await post("/auth/login", { rol: "dueno", correo: datos.correo, contrasena: CONTRASENA });
         expect(respuesta.statusCode).toBe(403);
         expect(respuesta.json()).not.toHaveProperty("token");
+        expect(respuesta.json().rol).toBe("dueno");
     });
 
     it("un código mal escrito es 400 y uno equivocado es 401 sin pistas", async () => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NIVELES_CONFIANZA } from "../constants.js";
+import { esquemaCorreo, esquemaNombrePersona, esquemaTelefono, esquemaTextoLibre, esquemaTokenQr, LIMITES } from "./campos.js";
 import { esquemaFechaIso, esquemaTextoNoVacio } from "./primitives.js";
 /**
  * Una vacuna tal como se muestra en la ficha pública: solo qué es, cuándo
@@ -48,8 +49,9 @@ export const esquemaPerfilPublicoMascota = z.object({
  * directo del dueño, solo un mensaje que el backend enruta.
  */
 export const esquemaSolicitudContactoPublico = z.object({
-    tokenQr: z.string(),
-    nombreContacto: esquemaTextoNoVacio,
-    canalContacto: z.string().min(6),
-    mensaje: z.string().trim().min(1).max(1000),
+    tokenQr: esquemaTokenQr,
+    nombreContacto: esquemaNombrePersona(LIMITES.nombreContacto, "Tu nombre"),
+    // Cómo responderle: un correo o un teléfono, nunca texto cualquiera.
+    canalContacto: z.union([esquemaCorreo, esquemaTelefono], { message: "Escribe un correo o un teléfono válido" }),
+    mensaje: esquemaTextoLibre(5, LIMITES.mensajeContacto, "El mensaje"),
 });

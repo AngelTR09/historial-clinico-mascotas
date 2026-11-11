@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TIPOS_DOCUMENTO } from "../constants.js";
+import { esquemaCorreo, esquemaNombrePersona, esquemaNumeroDocumento, esquemaTelefono, LIMITES, validarDocumento } from "./campos.js";
 import { esquemaContrasena, esquemaId, esquemaFechaHoraIso, esquemaTextoNoVacio, textoOpcional } from "./primitives.js";
 export const tipoDocumentoSchema = z.enum(TIPOS_DOCUMENTO);
 /**
@@ -27,13 +28,16 @@ export const esquemaPerfilDueno = esquemaDueno
  * vuelve a devolver así. `aceptaTratamientoDatos` respalda el `fechaConsentimiento`.
  * La cuenta nace inactiva: se activa con el código de 6 dígitos que llega al correo.
  */
-export const esquemaCreacionDueno = z.object({
+/** Campos del alta de cuenta sin la regla cruzada documento-tipo; sirve para `extend` y `omit` antes de volver a validar. */
+export const esquemaBaseCreacionDueno = z.object({
     tipoDocumento: tipoDocumentoSchema,
-    numeroDocumento: z.string().trim().min(6).max(12),
-    nombres: esquemaTextoNoVacio,
-    apellidos: esquemaTextoNoVacio,
-    correo: z.string().trim().toLowerCase().email(),
+    // El formato depende del tipo: DNI = 8 dígitos exactos (ver `REGLAS_DOCUMENTO`).
+    numeroDocumento: esquemaNumeroDocumento,
+    nombres: esquemaNombrePersona(LIMITES.nombrePersona, "Los nombres"),
+    apellidos: esquemaNombrePersona(LIMITES.apellidos, "Los apellidos"),
+    correo: esquemaCorreo,
     contrasena: esquemaContrasena,
-    telefono: textoOpcional(z.string().min(6).optional()),
-    aceptaTratamientoDatos: z.literal(true),
+    telefono: textoOpcional(esquemaTelefono.optional()),
+    aceptaTratamientoDatos: z.literal(true, { message: "Debes aceptar el tratamiento de datos" }),
 });
+export const esquemaCreacionDueno = esquemaBaseCreacionDueno.superRefine((datos, ctx) => validarDocumento(datos, ctx));

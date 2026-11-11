@@ -35,6 +35,20 @@ describe("transferencia de dueño", () => {
         const [mascotaActualizada] = await db.select({ idDueno: mascotas.idDueno }).from(mascotas).where(eq(mascotas.id, mascota.id)).limit(1);
         expect(mascotaActualizada?.idDueno).toBe(otroDueno.id);
     });
+    it("reemplaza la transferencia pendiente cuando se pidió, y deja inservible el código viejo", async () => {
+        const { mascota, otroDueno } = await mascotaAisladaConDosDuenos();
+        const primera = await crearTransferencia(mascota.idDueno, { idMascota: mascota.id });
+        idsTransferenciasCreadas.push(primera.transferencia.id);
+        await expect(crearTransferencia(mascota.idDueno, { idMascota: mascota.id })).rejects.toBeInstanceOf(ErrorConflicto);
+        const segunda = await crearTransferencia(mascota.idDueno, { idMascota: mascota.id, reemplazar: true });
+        idsTransferenciasCreadas.push(segunda.transferencia.id);
+        expect(segunda.transferencia.estado).toBe("pendiente");
+        const [vieja] = await db.select({ estado: transferencias.estado }).from(transferencias).where(eq(transferencias.id, primera.transferencia.id));
+        expect(vieja?.estado).toBe("cancelada");
+        await expect(canjearTransferencia(otroDueno.id, { idTransferencia: primera.transferencia.id, codigo: primera.codigo })).rejects.toBeInstanceOf(ErrorConflicto);
+        const canjeada = await canjearTransferencia(otroDueno.id, { idTransferencia: segunda.transferencia.id, codigo: segunda.codigo });
+        expect(canjeada.estado).toBe("completada");
+    });
     it("rechaza un código incorrecto sin mover al dueño", async () => {
         const { mascota, otroDueno } = await mascotaAisladaConDosDuenos();
         const { transferencia } = await crearTransferencia(mascota.idDueno, { idMascota: mascota.id });

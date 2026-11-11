@@ -16,6 +16,14 @@ export class ErrorProhibido extends ErrorDominio {
         super(mensaje, 403);
     }
 }
+/** Contraseña correcta pero correo sin verificar: lleva el `rol` para que la web abra la pantalla del código. */
+export class ErrorCuentaSinVerificar extends ErrorProhibido {
+    datos;
+    constructor(mensaje, rol) {
+        super(mensaje);
+        this.datos = { rol };
+    }
+}
 export class ErrorConflicto extends ErrorDominio {
     constructor(mensaje) {
         super(mensaje, 409);

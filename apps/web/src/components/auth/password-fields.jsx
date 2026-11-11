@@ -6,15 +6,15 @@ import { CampoContrasenaVisible } from "./password-input";
 export function CamposContrasena({ register, errors }) {
     return (<>
       <div>
-        <label htmlFor="contrasena" className="mb-1 block text-sm font-medium text-ink">Contraseña</label>
+        <label htmlFor="contrasena" className="mb-2 block text-sm font-medium text-ink">Contraseña</label>
         <CampoContrasenaVisible id="contrasena" autoComplete="new-password" {...register("contrasena")}/>
         <p className="mt-1 text-xs text-ink-faint">Al menos 12 caracteres, con minúscula, mayúscula, número y símbolo.</p>
-        {errors.contrasena && <p className="mt-1 text-xs text-clay-dark">{errors.contrasena.message}</p>}
+        {errors.contrasena && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.contrasena.message}</p>}
       </div>
       <div>
-        <label htmlFor="confirmarContrasena" className="mb-1 block text-sm font-medium text-ink">Repite la contraseña</label>
+        <label htmlFor="confirmarContrasena" className="mb-2 block text-sm font-medium text-ink">Repite la contraseña</label>
         <CampoContrasenaVisible id="confirmarContrasena" autoComplete="new-password" {...register("confirmarContrasena")}/>
-        {errors.confirmarContrasena && <p className="mt-1 text-xs text-clay-dark">{errors.confirmarContrasena.message}</p>}
+        {errors.confirmarContrasena && <p className="mt-2 text-sm font-medium text-clay-ink">{errors.confirmarContrasena.message}</p>}
       </div>
     </>);
 }

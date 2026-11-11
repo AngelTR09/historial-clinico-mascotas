@@ -1,4 +1,4 @@
-import { INTENTOS_MAXIMOS_CODIGO, MINUTOS_VIGENCIA_CODIGO } from "@hcm/shared";
+import { INTENTOS_MAXIMOS_CODIGO, MINUTOS_VIGENCIA_CODIGO, ROLES_SESION } from "@hcm/shared";
 import { randomInt, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import { config } from "../../config.js";
@@ -7,7 +7,7 @@ import { verificarContrasena, verificarContrasenaFicticia } from "../../crypto/p
 import { db } from "../../db/client.js";
 import { duenos, verificacionesCorreo, veterinarios } from "../../db/schema.js";
 import { esViolacionDeUnicidad } from "../../domain/db-errors.js";
-import { ErrorConflicto, ErrorNoAutorizado, ErrorProhibido } from "../../domain/errors.js";
+import { ErrorConflicto, ErrorCuentaSinVerificar, ErrorNoAutorizado, ErrorProhibido } from "../../domain/errors.js";
 const INTENTOS_FALLIDOS_PARA_BLOQUEAR = 5;
 const MINUTOS_BLOQUEO = 15;
 const SEGUNDOS_ENTRE_CODIGOS = 60;
@@ -168,29 +168,50 @@ export async function reenviarCodigo(ports, { rol, correo }) {
  * mismo error y tardan lo mismo. Cinco fallos seguidos bloquean la cuenta 15 minutos, y mientras dura
  * el bloqueo ni siquiera se compara la contraseña. Una cuenta sin verificar no entra, y eso solo se
  * dice cuando la contraseña ya fue correcta.
+ *
+ * Sin `rol`, el servidor busca el correo entre dueños y veterinarios y entra por la cuenta cuya
+ * contraseña coincide; la respuesta incluye el `rol` para que el cliente sepa a qué panel ir.
  */
 export async function iniciarSesion(ports, { rol, correo, contrasena }) {
-    const cuenta = await buscarCuenta(rol, correo);
-    if (!cuenta) {
+    const candidatas = [];
+    for (const rolBuscado of rol ? [rol] : ROLES_SESION) {
+        const cuenta = await buscarCuenta(rolBuscado, correo);
+        if (cuenta) {
+            candidatas.push({ rol: rolBuscado, cuenta });
+        }
+    }
+    if (candidatas.length === 0) {
         await verificarContrasenaFicticia(contrasena);
         throw new ErrorNoAutorizado(MENSAJE_CREDENCIALES);
     }
-    if (cuenta.bloqueadoHasta && cuenta.bloqueadoHasta.getTime() > Date.now()) {
+    const habilitadas = candidatas.filter(({ cuenta }) => !(cuenta.bloqueadoHasta && cuenta.bloqueadoHasta.getTime() > Date.now()));
+    if (habilitadas.length === 0) {
         throw new ErrorProhibido("Demasiados intentos fallidos. Intenta de nuevo en unos minutos");
     }
-    const { tabla } = CUENTAS[rol];
-    if (!(await verificarContrasena(contrasena, cuenta.contrasenaHash))) {
-        const intentos = cuenta.intentosFallidos + 1;
-        const bloquear = intentos >= INTENTOS_FALLIDOS_PARA_BLOQUEAR;
-        await db
-            .update(tabla)
-            .set({ intentosFallidos: bloquear ? 0 : intentos, bloqueadoHasta: bloquear ? new Date(Date.now() + MINUTOS_BLOQUEO * 60_000) : null })
-            .where(eq(tabla.id, cuenta.id));
+    let coincidente = null;
+    for (const candidata of habilitadas) {
+        if (await verificarContrasena(contrasena, candidata.cuenta.contrasenaHash)) {
+            coincidente = candidata;
+            break;
+        }
+    }
+    if (!coincidente) {
+        for (const { rol: rolCuenta, cuenta } of habilitadas) {
+            const { tabla } = CUENTAS[rolCuenta];
+            const intentos = cuenta.intentosFallidos + 1;
+            const bloquear = intentos >= INTENTOS_FALLIDOS_PARA_BLOQUEAR;
+            await db
+                .update(tabla)
+                .set({ intentosFallidos: bloquear ? 0 : intentos, bloqueadoHasta: bloquear ? new Date(Date.now() + MINUTOS_BLOQUEO * 60_000) : null })
+                .where(eq(tabla.id, cuenta.id));
+        }
         throw new ErrorNoAutorizado(MENSAJE_CREDENCIALES);
     }
+    const { rol: rolCuenta, cuenta } = coincidente;
     if (!cuenta.correoVerificadoEn) {
-        throw new ErrorProhibido("Debes verificar tu correo con el código que te enviamos");
+        throw new ErrorCuentaSinVerificar("Debes verificar tu correo con el código que te enviamos", rolCuenta);
     }
+    const { tabla } = CUENTAS[rolCuenta];
     await db.update(tabla).set({ intentosFallidos: 0, bloqueadoHasta: null }).where(eq(tabla.id, cuenta.id));
-    return { token: await CUENTAS[rol].emitirToken(ports, cuenta.id) };
+    return { token: await CUENTAS[rolCuenta].emitirToken(ports, cuenta.id), rol: rolCuenta };
 }
