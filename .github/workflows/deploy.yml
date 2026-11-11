@@ -117,20 +117,27 @@ jobs:
           imagen=$(ETIQUETA="${GITHUB_SHA::12}" bash scripts/despliegue/publicar-imagen.sh | tail -1)
           echo "IMAGEN=$imagen" >> "$GITHUB_ENV"
 
-      - name: Desplegar la imagen en ECS
+      # La definición de tarea nueva se registra sin tocar el servicio: primero se usa para migrar.
+      - name: Registrar la definición de tarea
         run: |
           tarea=$(bash scripts/despliegue/registrar-tarea.sh "$IMAGEN")
           echo "TAREA_ARN=$tarea" >> "$GITHUB_ENV"
+
+      # La base se migra ANTES de cambiar la versión de la API: el código nuevo espera las columnas
+      # nuevas, y las migraciones solo agregan (la versión anterior sigue funcionando mientras tanto).
+      # Con el orden inverso, la API nueva atendía contra el esquema viejo hasta terminar la migración.
+      - name: Migrar la base de datos
+        run: bash scripts/despliegue/migrar-bd.sh "$TAREA_ARN"
+
+      - name: Desplegar la imagen en ECS
+        run: |
           aws ecs update-service --region "$AWS_REGION" --cluster "$CLUSTER" --service "$SERVICIO" \
-            --task-definition "$tarea" --force-new-deployment --query 'service.taskDefinition' --output text
+            --task-definition "$TAREA_ARN" --force-new-deployment --query 'service.taskDefinition' --output text
           if ! aws ecs wait services-stable --region "$AWS_REGION" --cluster "$CLUSTER" --services "$SERVICIO"; then
             aws ecs describe-services --region "$AWS_REGION" --cluster "$CLUSTER" --services "$SERVICIO" \
               --query 'services[0].events[:5].message' --output text
             exit 1
           fi
-
-      - name: Migrar la base de datos
-        run: bash scripts/despliegue/migrar-bd.sh "$TAREA_ARN"
 
       - name: Actualizar el código de las Lambdas
         run: bash scripts/despliegue/actualizar-lambdas.sh
