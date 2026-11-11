@@ -16,6 +16,16 @@
     <link rel="icon" type="image/svg+xml" href="/img/logo.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/img/favicon-64.png" />
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+    <script>
+      // Aplica el tema antes de pintar para evitar el parpadeo (ver hooks/use-tema.js).
+      (function () {
+        try {
+          var guardado = localStorage.getItem("hcm-tema");
+          var oscuro = guardado ? guardado === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute("data-theme", oscuro ? "dark" : "light");
+        } catch (e) {}
+      })();
+    </script>
     <title>Historial Clínico Mascotas</title>
   </head>
   <body>
