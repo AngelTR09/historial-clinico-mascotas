@@ -114,7 +114,6 @@ resource "aws_s3_bucket" "evidencias" {
   force_destroy = var.forzar_borrado
   #checkov:skip=CKV_AWS_18:Sin logs de acceso: la auditoria de expedientes (RN 9) vive en audit_log, no en logs de S3
   #checkov:skip=CKV_AWS_144:Sin replicacion entre regiones: no la exige ningun RNF y duplicaria el costo de las imagenes
-  #checkov:skip=CKV2_AWS_62:Sin notificaciones de eventos: el OCR se encola desde la API, no desde S3
   bucket = "${var.nombre_proyecto}-evidencias-${data.aws_caller_identity.actual.account_id}"
 
   tags = var.etiquetas_comunes
@@ -192,4 +191,11 @@ resource "aws_s3_bucket_policy" "evidencias" {
   })
 
   depends_on = [aws_s3_bucket_public_access_block.evidencias]
+}
+
+# Avisos de eventos del bucket hacia EventBridge: no cuesta nada y deja los eventos disponibles para quien los quiera
+# consumir mañana. Hoy ninguna regla los escucha.
+resource "aws_s3_bucket_notification" "evidencias" {
+  bucket      = aws_s3_bucket.evidencias.id
+  eventbridge = true
 }
