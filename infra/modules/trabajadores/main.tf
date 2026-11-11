@@ -1,7 +1,8 @@
 # Workers asíncronos (stack del proyecto): cuatro Lambdas Node 20.
 #   proyector     SQS proyeccion     Postgres -> DynamoDB (ficha pública); también recarga las existentes
 #   normalizador  SQS normalizacion  texto libre de vacunas -> catálogo canónico; pide reproyectar la ficha
-#   recordatorios EventBridge diario busca vencimientos y los ENCOLA
+#   recordatorios EventBridge diario busca vencimientos, ENCOLA los que aún no se despacharon y los anota;
+#                                    también reencola las vacunas que el normalizador nunca atendió
 #   notificador   SQS recordatorios  envía el correo por SES; si falla 3 veces va a la DLQ
 # Separar "encolar" de "notificar" es lo que garantiza que ningún recordatorio se pierda
 # cuando el correo falla (RNF 15 y 18). El OCR y la carga masiva de albergue quedan fuera del PMV.
@@ -39,9 +40,10 @@ locals {
       memoria = 256
       extra = [
         { Effect = "Allow", Action = "secretsmanager:GetSecretValue", Resource = var.arn_secreto_bd },
-        { Effect = "Allow", Action = "sqs:SendMessage", Resource = var.arns_colas["recordatorios"] },
+        # Encola recordatorios y, si un mensaje de normalización se perdió, vuelve a encolar esa vacuna.
+        { Effect = "Allow", Action = "sqs:SendMessage", Resource = [var.arns_colas["recordatorios"], var.arns_colas["normalizacion"]] },
       ]
-      entorno = { URL_COLA_RECORDATORIOS = var.urls_colas["recordatorios"] }
+      entorno = { URL_COLA_RECORDATORIOS = var.urls_colas["recordatorios"], URL_COLA_NORMALIZACION = var.urls_colas["normalizacion"] }
     }
     notificador = {
       cola    = "recordatorios"
