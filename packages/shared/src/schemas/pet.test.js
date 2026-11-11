@@ -28,8 +28,8 @@ describe("esquemaActualizacionMascota", () => {
         expect(esquemaActualizacionMascota.safeParse({ notaDelDueno: "Tiene 3 años y pesa 12 kg, 2 pastillas al día" }).success).toBe(true);
     });
     it("limita la nota del dueño a 280 caracteres", () => {
-        expect(esquemaActualizacionMascota.safeParse({ notaDelDueno: "a".repeat(280) }).success).toBe(true);
-        expect(esquemaActualizacionMascota.safeParse({ notaDelDueno: "a".repeat(281) }).success).toBe(false);
+        expect(esquemaActualizacionMascota.safeParse({ notaDelDueno: "a".repeat(200) }).success).toBe(true);
+        expect(esquemaActualizacionMascota.safeParse({ notaDelDueno: "a".repeat(201) }).success).toBe(false);
     });
     it("trata la cadena vacía del formulario como borrar el dato (null) y undefined como no tocar", () => {
         const resultado = esquemaActualizacionMascota.parse({ colorSenas: "", temperamento: "   ", esterilizada: null });

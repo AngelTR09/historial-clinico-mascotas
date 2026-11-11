@@ -112,12 +112,24 @@ describe("esquemas de sesión", () => {
     it("el rol solo puede ser dueno o veterinario y el inicio de sesión no valida la política (solo compara)", () => {
         expect(esquemaInicioSesion.safeParse({ rol: "admin", correo: "a@b.co", contrasena: "x" }).success).toBe(false);
         expect(esquemaInicioSesion.safeParse({ rol: "veterinario", correo: "a@b.co", contrasena: "x" }).success).toBe(true);
+        // El rol es opcional: el servidor lo deduce de la cuenta.
+        expect(esquemaInicioSesion.safeParse({ correo: "a@b.co", contrasena: "x" }).success).toBe(true);
+    });
+
+    it("el inicio de sesión rechaza correos y contraseñas hostiles", () => {
+        for (const correo of ["' OR 1=1 --@x.co", "a@b.co; DROP TABLE owners", "<script>@x.co", "a b@x.co", "a@b", "a..b@x.co", `${"a".repeat(250)}@x.co`]) {
+            expect(esquemaInicioSesion.safeParse({ correo, contrasena: "x" }).success, correo).toBe(false);
+        }
+        expect(esquemaInicioSesion.safeParse({ correo: "  Ana.Perez+1@Example.COM ", contrasena: "x" }).data.correo).toBe("ana.perez+1@example.com");
+        expect(esquemaInicioSesion.safeParse({ correo: "a@b.co", contrasena: "mala\u0000clave" }).success).toBe(false);
+        expect(esquemaInicioSesion.safeParse({ correo: "a@b.co", contrasena: "x".repeat(129) }).success).toBe(false);
+        expect(esquemaInicioSesion.safeParse({ correo: "a@b.co", contrasena: "Clave' OR '1'='1-2026!" }).success).toBe(true);
     });
 });
 
 describe("esquemaCanjeTransferencia", () => {
-    it("exige id UUID y un código de al menos 6 caracteres", () => {
-        expect(esquemaCanjeTransferencia.safeParse({ idTransferencia: randomUUID(), codigo: "ABC123" }).success).toBe(true);
+    it("exige id UUID y un código de 10 caracteres hexadecimales", () => {
+        expect(esquemaCanjeTransferencia.safeParse({ idTransferencia: randomUUID(), codigo: "A1B2C3D4E5" }).success).toBe(true);
         expect(esquemaCanjeTransferencia.safeParse({ idTransferencia: randomUUID(), codigo: "abc" }).success).toBe(false);
         expect(esquemaCanjeTransferencia.safeParse({ idTransferencia: "x", codigo: "ABC123" }).success).toBe(false);
     });

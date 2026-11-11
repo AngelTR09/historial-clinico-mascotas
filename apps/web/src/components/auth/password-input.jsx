@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { forwardRef, useState } from "react";
 
-const CLASE_INPUT = "w-full min-h-11 rounded-md border border-sand-dark pl-3 pr-11 focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20";
+const CLASE_INPUT = "w-full min-h-11 rounded-md border border-control-border pl-3 pr-11 bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus";
 
 /**
  * Campo de contraseña con un botón para verla u ocultarla. Recibe lo mismo que un

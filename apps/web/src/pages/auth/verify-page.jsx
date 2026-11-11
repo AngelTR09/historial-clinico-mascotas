@@ -5,6 +5,7 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { PlantillaAutenticacion } from "../../components/ui/auth-layout";
 import { establecerToken, establecerTokenVeterinario } from "../../lib/auth-storage";
+import { claseBoton } from "../../components/ui/boton";
 /**
  * Segundo paso del registro (RNF 03): la cuenta nace inactiva y se activa con el código de 6 dígitos
  * que llegó al correo. Un código vale 15 minutos, admite 5 intentos y es de un solo uso.
@@ -38,13 +39,13 @@ export function PaginaVerificacionCorreo() {
             verificar.mutate();
         }}>
         <div>
-          <label htmlFor="codigo" className="mb-1 block text-sm font-medium text-ink">Código</label>
-          <input id="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={codigo} onChange={(evento) => setCodigo(evento.target.value.replace(/\D/g, ""))} className="w-full min-h-12 rounded-md border border-sand-dark px-3 text-center font-mono text-xl tracking-[0.4em] focus:border-pine focus:outline-none focus:ring-2 focus:ring-pine/20"/>
+          <label htmlFor="codigo" className="mb-2 block text-sm font-medium text-ink">Código</label>
+          <input id="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={codigo} onChange={(evento) => setCodigo(evento.target.value.replace(/\D/g, ""))} className="w-full min-h-12 rounded-md border border-control-border px-3 text-center font-mono text-xl tracking-[0.4em] bg-surface text-ink hover:border-ink-soft focus:border-pine focus:outline-none focus:shadow-focus"/>
         </div>
 
-        {verificar.isError && <p role="alert" className="text-sm text-clay-dark">{verificar.error.message}</p>}
+        {verificar.isError && <p role="alert" className="text-sm text-clay-ink">{verificar.error.message}</p>}
 
-        <button type="submit" disabled={codigo.length !== 6 || verificar.isPending} className="min-h-12 w-full rounded-md bg-pine font-medium text-white hover:bg-pine-dark disabled:opacity-50">
+        <button type="submit" disabled={codigo.length !== 6 || verificar.isPending} className={claseBoton({ tamano: "lg", bloque: true })}>
           {verificar.isPending ? "Verificando..." : "Verificar"}
         </button>
 

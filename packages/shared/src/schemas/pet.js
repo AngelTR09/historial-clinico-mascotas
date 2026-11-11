@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { esquemaFechaPasada, esquemaNombreMascota, esquemaPalabras, esquemaSexo, LIMITES } from "./campos.js";
 import { ESTADOS_MASCOTA } from "../constants.js";
 import { esquemaFechaIso, esquemaFechaHoraIso, esquemaId, esquemaTextoNoVacio, textoOpcional, textoPublicoEditable, esquemaUbigeo } from "./primitives.js";
 export const estadoMascotaSchema = z.enum(ESTADOS_MASCOTA);
@@ -34,12 +35,13 @@ export const esquemaMascota = z.object({
 });
 /** Alta de mascota (RF 02). `codigoPublico`, `tokenQr` y `estado` los asigna el backend. */
 export const esquemaCreacionMascota = z.object({
-    nombre: esquemaTextoNoVacio,
-    especie: esquemaTextoNoVacio,
-    raza: textoOpcional(z.string().trim().min(1).optional()),
-    sexo: textoOpcional(z.string().trim().min(1).optional()),
-    fechaNacimientoAprox: textoOpcional(esquemaFechaIso.optional()),
-    claveFoto: z.string().optional(),
+    nombre: esquemaNombreMascota,
+    especie: esquemaPalabras(LIMITES.especie, "La especie"),
+    raza: textoOpcional(esquemaPalabras(LIMITES.raza, "La raza").optional()),
+    sexo: textoOpcional(esquemaSexo.optional()),
+    // Aproximada, pero real: no futura ni de hace más de 30 años (la mascota más longeva rara vez los pasa).
+    fechaNacimientoAprox: textoOpcional(esquemaFechaPasada(30, "La fecha de nacimiento").optional()),
+    claveFoto: z.string().max(200).optional(),
     ubigeoDistrito: textoOpcional(esquemaUbigeo.optional()),
 });
 /**
@@ -72,10 +74,10 @@ export const esquemaActualizacionEstadoMascota = z.object({
 });
 
 /** Límites de los textos libres que el dueño publica en la ficha del QR. */
-export const LIMITE_COLOR_SENAS = 200;
-export const LIMITE_ALERTAS_MEDICAS = 300;
-export const LIMITE_TEMPERAMENTO = 120;
-export const LIMITE_NOTA_DEL_DUENO = 280;
+export const LIMITE_COLOR_SENAS = 120;
+export const LIMITE_ALERTAS_MEDICAS = 150;
+export const LIMITE_TEMPERAMENTO = 80;
+export const LIMITE_NOTA_DEL_DUENO = 200;
 
 /**
  * Edición por el dueño de los datos que ayudan a identificar y cuidar al

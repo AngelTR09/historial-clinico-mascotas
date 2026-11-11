@@ -1,4 +1,4 @@
-import { esquemaSolicitudContactoPublico } from "@hcm/shared";
+import { esquemaSolicitudContactoPublico, esquemaTokenQr } from "@hcm/shared";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { registrarAuditoria } from "../audit/record-audit.js";
@@ -6,7 +6,7 @@ import { db } from "../db/client.js";
 import { mascotas } from "../db/schema.js";
 import { ErrorNoEncontrado } from "../domain/errors.js";
 import { enviarSolicitudContactoPublico } from "../use-cases/public/submit-public-contact-request.js";
-const esquemaParametros = z.object({ tokenQr: z.string().min(1) });
+const esquemaParametros = z.object({ tokenQr: esquemaTokenQr });
 /**
  * RF 21. Sin autenticación: es la ficha que ve cualquiera que escanea la
  * placa. Nunca expone `public_code`, `owner_id` ni datos del dueño

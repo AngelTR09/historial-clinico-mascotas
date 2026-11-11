@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { esquemaCreacionDueno } from "./owner.js";
+import { esquemaBaseCreacionDueno } from "./owner.js";
+import { validarDocumento } from "./campos.js";
 import { esquemaCreacionMascota } from "./pet.js";
 
 /**
@@ -10,6 +11,6 @@ import { esquemaCreacionMascota } from "./pet.js";
  * datos (Ley 29733).
  */
 export const esquemaRegistroMascotaPorVeterinario = z.object({
-    dueno: esquemaCreacionDueno.omit({ contrasena: true }),
+    dueno: esquemaBaseCreacionDueno.omit({ contrasena: true }).superRefine((datos, ctx) => validarDocumento(datos, ctx)),
     mascota: esquemaCreacionMascota,
 });

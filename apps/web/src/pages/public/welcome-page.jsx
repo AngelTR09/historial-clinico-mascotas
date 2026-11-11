@@ -2,6 +2,7 @@ import { Activity, ArrowRight, Heart, PawPrint, QrCode, ShieldCheck, Stethoscope
 import { Link } from "react-router-dom";
 import { LogoMarca, NombreMarca } from "../../components/ui/brand-name";
 import { Revelar } from "../../components/ui/reveal-al-desplazar";
+import { BotonTema } from "../../components/ui/boton-tema";
 
 const CARACTERISTICAS = [
     {
@@ -38,23 +39,21 @@ const PASOS = [
 
 // Clases por acento (el compilador de Tailwind necesita las clases completas, no interpoladas).
 const ACENTOS = {
-    pine: { chip: "bg-pine-tint text-pine group-hover:bg-pine group-hover:text-white", halo: "bg-pine/10" },
+    pine: { chip: "bg-pine-tint text-pine group-hover:bg-pine group-hover:text-on-pine", halo: "bg-pine/10" },
     gold: { chip: "bg-gold-tint text-gold group-hover:bg-gold group-hover:text-white", halo: "bg-gold/10" },
 };
 
 export function PaginaBienvenida() {
-    return (<div className="min-h-screen bg-paper">
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-transparent bg-paper/80 px-4 py-4 backdrop-blur-md sm:px-6">
+    return (<div className="fondo-bienvenida min-h-screen bg-canvas">
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-transparent bg-canvas/80 px-4 py-4 backdrop-blur-md sm:px-6">
         <span className="group flex items-center gap-2 font-display text-xl font-semibold text-ink">
           <LogoMarca className="h-10 w-10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"/>
           <NombreMarca/>
         </span>
         <nav className="flex items-center gap-1" aria-label="Cuenta">
-          <Link to="/login" className="flex min-h-11 items-center rounded-md px-2 text-sm text-ink-soft transition-colors hover:text-ink">
+          <BotonTema/>
+          <Link to="/login" className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-sunken hover:text-ink">
             Iniciar sesión
-          </Link>
-          <Link to="/vet" className="flex min-h-11 items-center rounded-md px-2 text-sm text-ink-soft transition-colors hover:text-ink">
-            Soy veterinario
           </Link>
         </nav>
       </header>
@@ -73,7 +72,7 @@ export function PaginaBienvenida() {
 
           <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-4 py-10 sm:grid-cols-2 sm:px-6 sm:py-20">
             <div>
-              <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-sand bg-paper-raised/70 px-3 py-1 text-xs font-medium text-ink-soft animate-entrada">
+              <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-ink-soft animate-entrada">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pine opacity-60"/>
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-pine"/>
@@ -89,13 +88,13 @@ export function PaginaBienvenida() {
                 la escanea y abre su expediente completo durante 4 horas, sin que tengas que reconstruir su historia de memoria.
               </p>
               <div className="flex flex-col gap-3 animate-entrada sm:flex-row" style={{ animationDelay: "0.24s" }}>
-                <Link to="/register" className="group relative flex min-h-12 items-center justify-center gap-2 overflow-hidden rounded-md bg-pine px-5 font-medium text-white shadow-sm transition-all duration-300 hover:bg-pine-dark hover:shadow-lg hover:shadow-pine/20 active:scale-[0.98]">
+                <Link to="/register" className="group relative flex min-h-12 items-center justify-center gap-2 overflow-hidden rounded-md bg-pine px-5 font-medium text-on-pine shadow-sm transition-all duration-300 hover:bg-pine-hover hover:shadow-lg hover:shadow-pine/20 active:scale-[0.98]">
                   {/* Destello que barre el botón al pasar el cursor. */}
                   <span aria-hidden="true" className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"/>
                   Registrar a mi mascota
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"/>
                 </Link>
-                <Link to="/vet" className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-sand-dark px-5 font-medium text-ink transition-all duration-300 hover:border-pine hover:bg-white hover:text-pine active:scale-[0.98]">
+                <Link to="/vet" className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-border-strong px-5 font-medium text-ink transition-all duration-300 hover:border-pine hover:bg-surface hover:text-pine active:scale-[0.98]">
                   Soy veterinario
                 </Link>
               </div>
@@ -105,7 +104,7 @@ export function PaginaBienvenida() {
             <div className="order-first flex justify-center animate-entrada sm:order-none" style={{ animationDelay: "0.2s" }}>
               <div className="group relative">
                 <div aria-hidden="true" className="absolute -inset-6 rounded-full bg-pine/5 blur-2xl animate-resplandor"/>
-                <div className="relative w-64 overflow-hidden rounded-3xl border border-sand bg-paper-raised shadow-sm transition-transform duration-500 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-80">
+                <div className="relative w-64 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm transition-transform duration-500 group-hover:-translate-y-1 group-hover:shadow-xl sm:w-80">
                   <img src="/img/portada-perro.webp" alt="Perro mestizo marrón y blanco con collar verde y placa" width="960" height="1200" fetchPriority="high" className="aspect-[4/5] w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"/>
 
                   {/* Línea de escaneo que barre la foto de arriba a abajo. */}
@@ -119,7 +118,7 @@ export function PaginaBienvenida() {
                   <span aria-hidden="true" className="absolute bottom-3 left-3 h-5 w-5 rounded-bl-lg border-b-2 border-l-2 border-white/80"/>
                   <span aria-hidden="true" className="absolute bottom-3 right-3 h-5 w-5 rounded-br-lg border-b-2 border-r-2 border-white/80"/>
 
-                  <div className="absolute inset-x-6 bottom-6 flex items-center justify-center gap-2 rounded-full bg-white/90 px-3 py-1.5 font-mono text-xs text-ink shadow-sm backdrop-blur">
+                  <div className="absolute inset-x-6 bottom-6 flex items-center justify-center gap-2 rounded-full bg-surface/90 px-3 py-1.5 font-mono text-xs text-ink shadow-sm backdrop-blur">
                     <QrCode className="h-3.5 w-3.5 text-pine"/>
                     HCM·PE
                   </div>
@@ -149,11 +148,11 @@ export function PaginaBienvenida() {
         </section>
 
         {/* CARACTERÍSTICAS */}
-        <section className="border-y border-sand bg-paper-raised px-4 py-12 sm:px-6 sm:py-16">
+        <section className="border-y border-border bg-surface px-4 py-12 sm:px-6 sm:py-16">
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-3">
             {CARACTERISTICAS.map(({ icono: Icono, titulo, descripcion, acento, imagen, altImagen }, index) => {
                 const estilo = ACENTOS[acento];
-                return (<Revelar key={titulo} retardoMs={index * 120} className="group relative overflow-hidden rounded-2xl border border-sand bg-paper p-6 transition-all duration-300 hover:-translate-y-1 hover:border-sand-dark hover:shadow-lg">
+                return (<Revelar key={titulo} retardoMs={index * 120} className="group relative overflow-hidden rounded-2xl border border-border bg-canvas p-6 transition-all duration-300 hover:-translate-y-1 hover:border-border-strong hover:shadow-lg">
                     <div aria-hidden="true" className={`absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${estilo.halo}`}/>
                     {imagen && <img src={imagen} alt={altImagen} width="1200" height="896" loading="lazy" className="relative -mx-6 -mt-6 mb-5 h-36 w-[calc(100%+3rem)] max-w-none object-cover"/>}
                     <div className={`relative mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-colors duration-300 ${estilo.chip}`}>
@@ -173,9 +172,9 @@ export function PaginaBienvenida() {
           </Revelar>
           <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-3">
             {/* Rastro que conecta los tres pasos en escritorio. */}
-            <div aria-hidden="true" className="absolute left-0 right-0 top-4 hidden h-px bg-gradient-to-r from-transparent via-sand-dark to-transparent sm:block"/>
+            <div aria-hidden="true" className="absolute left-0 right-0 top-4 hidden h-px bg-gradient-to-r from-transparent via-border-strong to-transparent sm:block"/>
             {PASOS.map((paso, index) => (<Revelar key={paso.titulo} retardoMs={index * 140} className="group relative flex gap-4 sm:flex-col sm:gap-3 sm:text-center">
-                <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pine font-display text-sm font-semibold text-white shadow-sm transition-transform duration-300 group-hover:scale-110 sm:mx-auto">
+                <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pine font-display text-sm font-semibold text-on-pine shadow-sm transition-transform duration-300 group-hover:scale-110 sm:mx-auto">
                   <span aria-hidden="true" className="absolute inline-flex h-full w-full rounded-full bg-pine opacity-0 transition-opacity duration-300 group-hover:animate-ping group-hover:opacity-40"/>
                   {index + 1}
                 </span>
@@ -191,18 +190,18 @@ export function PaginaBienvenida() {
         <section className="px-4 pb-14 sm:px-6">
           <Revelar className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-pine px-6 py-12 text-center shadow-sm sm:px-10 sm:py-16">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-              <div className="absolute -left-10 -top-10 h-48 w-48 rounded-full bg-white/5 blur-2xl animate-resplandor"/>
+              <div className="absolute -left-10 -top-10 h-48 w-48 rounded-full bg-on-pine/5 blur-2xl animate-resplandor"/>
               <div className="absolute -bottom-12 right-0 h-56 w-56 rounded-full bg-gold/10 blur-3xl animate-flotar-lento"/>
-              <PawPrint className="absolute right-[10%] top-[20%] h-10 w-10 rotate-12 text-white/5 animate-flotar"/>
+              <PawPrint className="absolute right-[10%] top-[20%] h-10 w-10 rotate-12 text-on-pine/5 animate-flotar"/>
             </div>
             <img src="/img/portada-perro.webp" alt="Perro mestizo marrón y blanco sentado en un parque, con collar verde y placa" width="960" height="1200" loading="lazy" className="relative mx-auto mb-5 h-24 w-24 rounded-full object-cover object-top ring-4 ring-white/30"/>
-            <h2 className="relative mb-3 font-display text-2xl font-semibold text-white sm:text-3xl">
+            <h2 className="relative mb-3 font-display text-2xl font-semibold text-on-pine sm:text-3xl">
               Empieza el expediente de tu mascota hoy
             </h2>
-            <p className="relative mx-auto mb-7 max-w-md text-pine-tint">
+            <p className="relative mx-auto mb-7 max-w-md text-on-pine/80">
               Gratis, en minutos. Su historial de salud te acompaña toda la vida.
             </p>
-            <Link to="/register" className="group relative inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-white px-6 font-medium text-pine transition-all duration-300 hover:shadow-lg hover:shadow-black/10 active:scale-[0.98]">
+            <Link to="/register" className="group relative inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-on-pine px-6 font-medium text-pine transition-all duration-300 hover:shadow-lg hover:shadow-black/10 active:scale-[0.98]">
               Registrar a mi mascota
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"/>
             </Link>
@@ -210,7 +209,7 @@ export function PaginaBienvenida() {
         </section>
       </main>
 
-      <footer className="border-t border-sand px-4 py-6 text-center text-sm text-ink-faint sm:px-6">
+      <footer className="border-t border-border px-4 py-6 text-center text-sm text-ink-faint sm:px-6">
         Historial Clínico Mascotas · Registro Nacional de Identidad y Salud Animal
       </footer>
     </div>);

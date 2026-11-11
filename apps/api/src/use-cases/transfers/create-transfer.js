@@ -19,6 +19,10 @@ function codigoTransferenciaAleatorio() {
  * vencidas se marcan `expirada` antes de insertar para que no bloqueen una nueva; si ya
  * hay una vigente, hay que cancelarla primero. Las solicitudes simultáneas no pueden
  * dejar más de una: la base rechaza a las demás.
+ *
+ * El código en claro no se puede recuperar (solo se guarda su hash). Si el dueño lo perdió,
+ * `reemplazar` cancela la cesión pendiente de esa mascota y emite otra en la misma transacción:
+ * si algo falla, la anterior sigue vigente.
  */
 export async function crearTransferencia(idDueno, input) {
     const [mascota] = await db.select({ idDueno: mascotas.idDueno }).from(mascotas).where(eq(mascotas.id, input.idMascota)).limit(1);
@@ -36,20 +40,29 @@ export async function crearTransferencia(idDueno, input) {
         .where(and(eq(transferencias.idMascota, input.idMascota), eq(transferencias.estado, "pendiente"), lt(transferencias.expiraEn, new Date())));
     let insertada;
     try {
-        [insertada] = await db
-            .insert(transferencias)
-            .values({
-            idMascota: input.idMascota,
-            idDuenoOrigen: idDueno,
-            hashCodigo: hmacWithPepper(codigo),
-            expiraEn,
-            estado: "pendiente",
-        })
-            .returning();
+        insertada = await db.transaction(async (tx) => {
+            if (input.reemplazar) {
+                await tx
+                    .update(transferencias)
+                    .set({ estado: "cancelada" })
+                    .where(and(eq(transferencias.idMascota, input.idMascota), eq(transferencias.estado, "pendiente")));
+            }
+            const [fila] = await tx
+                .insert(transferencias)
+                .values({
+                idMascota: input.idMascota,
+                idDuenoOrigen: idDueno,
+                hashCodigo: hmacWithPepper(codigo),
+                expiraEn,
+                estado: "pendiente",
+            })
+                .returning();
+            return fila;
+        });
     }
     catch (error) {
         if (esViolacionDeUnicidad(error)) {
-            throw new ErrorConflicto("Ya hay una transferencia pendiente para esta mascota; cancélala para crear otra");
+            throw new ErrorConflicto("Ya hay una transferencia pendiente para esta mascota; cancélala o reemplázala para crear otra");
         }
         throw error;
     }

@@ -50,7 +50,7 @@ describe("RNF 16: un expediente ajeno es indistinguible de uno inexistente", () 
         const ajeno = await crearDuenoYMascotaAislados(rastreador);
         const idEventoAjeno = await crearEventoSaludAislado(rastreador, { idMascota: ajeno.idMascota, idDueno: ajeno.idDueno });
         const headers = { authorization: `Bearer ${await puertos.autenticacion.issueOwnerToken(propio.idDueno)}` };
-        const evento = (idMascota) => ({ idMascota, tipo: "chequeo", fechaEvento: "2026-05-01", textoOriginal: "x", claveIdempotencia: randomUUID() });
+        const evento = (idMascota) => ({ idMascota, tipo: "chequeo", fechaEvento: "2026-05-01", textoOriginal: "Chequeo general", claveIdempotencia: randomUUID() });
         const intentos = [
             ["/health-events", (id) => evento(id), ajeno.idMascota],
             ["/transfers", (id) => ({ idMascota: id }), ajeno.idMascota],

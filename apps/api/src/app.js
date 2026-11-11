@@ -43,7 +43,7 @@ export async function buildApp(ports, opciones = {}) {
     });
     app.setErrorHandler((error, _request, reply) => {
         if (error instanceof ErrorDominio) {
-            reply.code(error.codigoEstado).send({ error: error.message });
+            reply.code(error.codigoEstado).send({ error: error.message, ...error.datos });
             return;
         }
         if (error instanceof ZodError) {

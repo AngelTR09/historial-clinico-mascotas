@@ -2,6 +2,7 @@ export * from "./constants.js";
 export * from "./utils/public-code.js";
 export * from "./utils/qr-token.js";
 export * from "./schemas/primitives.js";
+export * from "./schemas/campos.js";
 export * from "./schemas/owner.js";
 export * from "./schemas/pet.js";
 export * from "./schemas/auth.js";
