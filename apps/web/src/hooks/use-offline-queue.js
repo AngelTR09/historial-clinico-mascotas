@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { listarSubidasPendientes, listarSubidasPendientesDeMascota } from "../lib/offline-queue";
 import { sincronizarSubidasPendientes } from "../lib/offline-sync";
 import { useEstadoConexion } from "./use-online-status";
+const SEGUNDOS_ENTRE_REINTENTOS = 30;
 async function actualizar(queryClient) {
     const resultado = await sincronizarSubidasPendientes();
     await queryClient.invalidateQueries({ queryKey: ["offline-queue"] });
@@ -30,6 +31,16 @@ export function useColaSinConexion() {
         window.addEventListener("online", alConectar);
         return () => window.removeEventListener("online", alConectar);
     }, [sincronizar]);
+    // Con la API caída el navegador sigue "en línea" y el evento `online` nunca llega: mientras quede
+    // algo pendiente se reintenta cada cierto tiempo, hasta que la API vuelva a aceptar.
+    const hayPendientes = (consultaPendientes.data?.length ?? 0) > 0;
+    useEffect(() => {
+        if (!enLinea || !hayPendientes) {
+            return undefined;
+        }
+        const temporizador = setInterval(() => void sincronizar(), SEGUNDOS_ENTRE_REINTENTOS * 1000);
+        return () => clearInterval(temporizador);
+    }, [enLinea, hayPendientes, sincronizar]);
     return { pendientes: consultaPendientes.data ?? [], enLinea, sincronizar };
 }
 /** Ítems pendientes de una mascota puntual, para mostrarlos junto a su historial. */

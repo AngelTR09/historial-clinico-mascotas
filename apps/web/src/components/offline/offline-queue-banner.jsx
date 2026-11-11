@@ -16,7 +16,7 @@ export function AvisoColaSinConexion() {
             setSincronizando(false);
         }
     }
-    return (<div className="border-b border-gold/25 bg-gold-tint px-4 py-2 text-sm text-gold-dark sm:px-6">
+    return (<div role="status" className="border-b border-pine bg-pine-tint px-4 py-2 text-sm text-pine-ink sm:px-6">
       <div className="mx-auto flex max-w-3xl flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-1.5">
           <CloudOff className="h-4 w-4 shrink-0"/>

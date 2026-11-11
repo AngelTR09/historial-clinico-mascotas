@@ -1,15 +1,14 @@
-import { api } from "../api/client";
+import { api, esFalloTransitorio } from "../api/client";
 import { listarSubidasPendientes, marcarErrorSubidaPendiente, eliminarSubidaPendiente } from "./offline-queue";
-function esErrorDeRed(err) {
-    return err instanceof TypeError;
-}
 /**
  * Reintenta la cola de subidas pendientes en orden de creación. Los
  * eventos de salud van antes que sus adjuntos porque un adjunto necesita
  * el `idEvento` real que devuelve el backend al crear el evento. Si un
- * ítem falla por falta de red se detiene ahí (seguimos sin conexión); si
- * falla por otra razón (p. ej. validación) se marca el error y se sigue
- * con el resto para no bloquear la cola entera por un ítem inválido.
+ * ítem falla por algo pasajero (sin red, la API no está disponible o
+ * tarda demasiado) se detiene ahí sin marcarlo: sigue pendiente y se
+ * reintenta después con su misma clave de idempotencia. Si falla por
+ * otra razón (p. ej. validación) se marca el error y se sigue con el
+ * resto para no bloquear la cola entera por un ítem inválido.
  */
 export async function sincronizarSubidasPendientes() {
     const items = await listarSubidasPendientes();
@@ -32,7 +31,7 @@ export async function sincronizarSubidasPendientes() {
             sincronizados++;
         }
         catch (err) {
-            if (esErrorDeRed(err)) {
+            if (esFalloTransitorio(err)) {
                 break;
             }
             await marcarErrorSubidaPendiente(item.id, err instanceof Error ? err.message : "Error desconocido");
