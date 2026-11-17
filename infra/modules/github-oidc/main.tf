@@ -1,8 +1,10 @@
-# GitHub Actions entra a AWS por OIDC, sin claves de larga vida. Dos roles:
-#   - plan:       solo lectura; lo asume cualquier pull_request del repositorio para validar con terraform plan.
-#   - despliegue: lo asume SOLO un job que declare el GitHub Environment `dev` (el environment limita la rama de
-#                 despliegue a `development`). Sin AdministratorAccess: una política administrada propia limita los
-#                 servicios, la región y los recursos, y el estado de Terraform solo se toca bajo su prefijo.
+# GitHub Actions se conecta a AWS mediante OIDC, sin guardar claves de acceso permanentes.
+# Se utilizan dos roles:
+# - Plan: permite validar los cambios de los pull requests con terraform plan.
+# - Despliegue: solo puede asumirlo un job que utilice el GitHub Environment configurado,
+#   previsto para dev y restringido a la rama development desde GitHub.
+# El despliegue no utiliza AdministratorAccess. Sus permisos se definen en una política
+# propia que limita los servicios, la región y los recursos del proyecto.
 
 data "aws_caller_identity" "actual" {}
 
@@ -40,7 +42,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   tags = var.etiquetas_comunes
 }
 
-# ---------- Rol de plan (pull requests) ----------
+# Rol de plan (pull requests)
 
 resource "aws_iam_role" "plan" {
   name                 = "${var.nombre_proyecto}-github-plan"
@@ -131,7 +133,7 @@ resource "aws_iam_role_policy" "plan_estado" {
   })
 }
 
-# ---------- Rol de despliegue (environment dev) ----------
+# Rol de despliegue (environment dev)
 
 resource "aws_iam_role" "despliegue" {
   name                 = var.nombre_rol_despliegue
@@ -173,7 +175,10 @@ resource "aws_iam_policy" "despliegue" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      # --- Estado de Terraform: solo su prefijo, su archivo y su archivo de bloqueo ---
+
+      # El rol de despliegue puede leer y actualizar el estado de su entorno,
+      # además de crear y eliminar su archivo de bloqueo.
+
       {
         Sid       = "ListarEstadoDelPrefijo"
         Effect    = "Allow"
@@ -199,7 +204,10 @@ resource "aws_iam_policy" "despliegue" {
         Action   = ["kms:Decrypt", "kms:Encrypt", "kms:GenerateDataKey", "kms:DescribeKey"]
         Resource = var.arn_clave_estado
       },
-      # --- Buckets del proyecto (la web y las evidencias), nunca el bucket de estado ---
+
+      # Se permite administrar los buckets de la web y de evidencias del proyecto,
+      # sin incluir el bucket utilizado para guardar el estado de Terraform.
+
       {
         Sid      = "BucketsDelProyecto"
         Effect   = "Allow"
@@ -212,7 +220,7 @@ resource "aws_iam_policy" "despliegue" {
         Action   = "s3:*"
         Resource = [for b in ["web", "evidencias"] : "arn:aws:s3:::${var.nombre_proyecto}-${b}-*/*"]
       },
-      # --- Servicios regionales del stack, solo en la región del laboratorio ---
+      # Los permisos de los servicios regionales se limitan a la región
       {
         Sid    = "ServiciosRegionalesDelStack"
         Effect = "Allow"
@@ -224,14 +232,17 @@ resource "aws_iam_policy" "despliegue" {
         Resource  = "*"
         Condition = { StringEquals = { "aws:RequestedRegion" = var.region } }
       },
-      # --- CloudFront es un servicio global ---
+      # CloudFront es un servicio global
       {
         Sid      = "CloudFront"
         Effect   = "Allow"
         Action   = "cloudfront:*"
         Resource = "*"
       },
-      # --- IAM: solo roles del proyecto y solo las políticas administradas de la lista ---
+
+      # Los permisos de IAM se aplican a los roles del proyecto.
+      # Solo se pueden adjuntar o quitar las políticas administradas permitidas.
+
       {
         Sid    = "RolesDelProyecto"
         Effect = "Allow"

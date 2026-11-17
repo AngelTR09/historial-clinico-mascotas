@@ -1,6 +1,7 @@
-# VPC de dos zonas SIN NAT Gateway (política de costos del proyecto). Subredes públicas para el ALB y las
-# tareas Fargate (con IP pública), subredes privadas para RDS y las Lambdas que leen la
-# base. Los endpoints gateway de S3 y DynamoDB son gratis.
+# Se configura una VPC en dos zonas de disponibilidad, sin NAT Gateway para reducir costos.
+# Las subredes públicas alojan el ALB y las tareas Fargate con IP pública,
+# mientras que las privadas se utilizan para RDS y las Lambdas que acceden a la base de datos.
+# También se agregan endpoints Gateway de S3 y DynamoDB, sin costo adicional por hora.
 
 data "aws_region" "actual" {}
 
@@ -126,8 +127,9 @@ resource "aws_vpc_endpoint" "interfaz" {
   tags = merge(var.etiquetas_comunes, { Name = "${var.nombre_proyecto}-vpce-${each.key}" })
 }
 
-# ---------- Grupos de seguridad ----------
-# Cadena: CloudFront -> ALB -> API -> RDS. Las Lambdas llegan a RDS y a los endpoints.
+# Grupos de seguridad
+# El tráfico sigue la ruta CloudFront -> ALB -> API -> RDS.
+# Las Lambdas también pueden conectarse a RDS y a los endpoints de la VPC.
 
 resource "aws_security_group" "alb" {
   #checkov:skip=CKV2_AWS_5:Se adjunta en el modulo computo mediante la salida id_sg_alb
