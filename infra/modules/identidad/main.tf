@@ -1,6 +1,6 @@
-# Cognito reemplaza al AuthPort local (RNF 03 y 06): emite tokens con vencimiento y el
-# registro se confirma con un código enviado por correo, igual que el login local.
-# Que un veterinario esté aprobado lo sigue decidiendo la API (ADR 0006).
+# Cognito reemplaza la autenticación local de AuthPort
+# Configura tokens con tiempo de vencimiento y confirma el registro mediante
+# un código enviado al correo. La aprobación de veterinarios sigue a cargo de la API.
 
 resource "aws_cognito_user_pool" "principal" {
   name                     = "${var.nombre_proyecto}-usuarios"

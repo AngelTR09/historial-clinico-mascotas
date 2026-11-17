@@ -1,9 +1,9 @@
-# Colas SQS con su DLQ y el tema SNS de alertas. El PDF exige que un recordatorio no se pierda
-# aunque el servicio de notificaciones falle (RNF 15 y 18): el mensaje reintenta
-# `maximo_recepciones` veces y luego queda guardado en la DLQ.
-#
-# El PMV solo necesita tres colas. Las de OCR y carga masiva de albergue quedan para el
-# segundo incremento (AWS-hcm/PMV): para habilitarlas basta agregarlas a este conjunto.
+# Se configuran las colas SQS con sus respectivas colas de mensajes fallidos (DLQ)
+# y un tema SNS para las alertas. Si un recordatorio
+# no logra procesarse después de maximo_recepciones recepciones, pasa a la DLQ.
+
+# El PMV utiliza tres colas. Las de OCR y carga masiva de albergues quedan
+# para una segunda etapa y podrán agregarse al conjunto cuando se necesiten.
 
 locals {
   colas = toset(["normalizacion", "proyeccion", "recordatorios"])

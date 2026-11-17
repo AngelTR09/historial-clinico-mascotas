@@ -1,11 +1,16 @@
-# Workers asíncronos (stack del proyecto): cuatro Lambdas Node 20.
-#   proyector     SQS proyeccion     Postgres -> DynamoDB (ficha pública); también recarga las existentes
-#   normalizador  SQS normalizacion  texto libre de vacunas -> catálogo canónico; pide reproyectar la ficha
-#   recordatorios EventBridge diario busca vencimientos, ENCOLA los que aún no se despacharon y los anota;
-#                                    también reencola las vacunas que el normalizador nunca atendió
-#   notificador   SQS recordatorios  envía el correo por SES; si falla 3 veces va a la DLQ
-# Separar "encolar" de "notificar" es lo que garantiza que ningún recordatorio se pierda
-# cuando el correo falla (RNF 15 y 18). El OCR y la carga masiva de albergue quedan fuera del PMV.
+# El proyecto utiliza cuatro funciones Lambda con Node.js para procesar tareas en segundo plano:
+# - Proyector: recibe mensajes de SQS y actualiza la ficha pública en DynamoDB
+#   con datos de PostgreSQL. También permite reconstruir las fichas existentes.
+# - Normalizador: convierte los nombres de vacunas a un formato estándar
+#   y solicita actualizar la ficha pública.
+# - Recordatorios: se ejecuta diariamente mediante EventBridge para buscar vacunas
+#   próximas a vencer, registrar y encolar los avisos pendientes. También vuelve
+#   a encolar las vacunas que no fueron normalizadas.
+# - Notificador: recibe los recordatorios desde SQS y envía los correos mediante SES.
+#   Si falla después de los intentos permitidos, el mensaje pasa a la DLQ.
+# Separar la preparación del recordatorio de su envío permite conservar los mensajes
+# pendientes cuando falla el correo
+# El OCR y la carga masiva de albergues quedan fuera del PMV.
 
 locals {
   funciones = {
@@ -178,8 +183,10 @@ resource "aws_lambda_function" "funcion" {
     aws_iam_role_policy.funcion,
   ]
 
-  # El zip solo se necesita para crear la función; después el código lo actualiza el
-  # pipeline (deploy-workers.yml) y Terraform no debe revertirlo.
+  # El archivo ZIP se utiliza al crear la función. Después, el código se actualiza
+  # desde deploy.yml mediante actualizar-lambdas.sh.
+  # Se ignoran estos cambios para que Terraform no sobrescriba las versiones desplegadas.
+
   lifecycle {
     ignore_changes = [filename, source_code_hash]
   }

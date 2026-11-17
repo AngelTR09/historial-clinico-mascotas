@@ -1,7 +1,7 @@
-# La API de Fastify con la MISMA imagen Docker de la fase local (la imagen no cambia entre local y AWS), en
-# ECS Fargate detrás de un ALB, con Application Auto Scaling. La TLS termina en
-# CloudFront; el ALB solo acepta tráfico de CloudFront (grupo de seguridad con la lista
-# de prefijos gestionada por AWS).
+# La API de Fastify utiliza la misma imagen Docker que en local
+# y se ejecuta en ECS Fargate, detrás de un ALB con escalado automático.
+# CloudFront se encarga de la conexión TLS y el ALB restringe el acceso
+# mediante la lista de prefijos de CloudFront. 
 
 data "aws_region" "actual" {}
 
@@ -10,7 +10,7 @@ locals {
   registro_imagen = aws_ecr_repository.api.repository_url
 }
 
-# ---------- ECR ----------
+# ECR
 
 resource "aws_ecr_repository" "api" {
   force_delete         = var.forzar_borrado
@@ -42,7 +42,7 @@ resource "aws_ecr_lifecycle_policy" "api" {
   })
 }
 
-# ---------- Logs y cluster ----------
+# Logs y cluster
 
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/ecs/${local.nombre_servicio}"
@@ -63,7 +63,7 @@ resource "aws_ecs_cluster" "principal" {
   tags = var.etiquetas_comunes
 }
 
-# ---------- IAM ----------
+# IAM
 
 resource "aws_iam_role" "ejecucion" {
   name = "${local.nombre_servicio}-ejecucion"
@@ -113,8 +113,9 @@ resource "aws_iam_role" "tarea" {
   tags = var.etiquetas_comunes
 }
 
-# Permisos mínimos de la API: firmar subidas de evidencias, leer y escribir DynamoDB,
-# encolar trabajo y descifrar con la clave de datos. Nunca recibe el binario (regla del proyecto: el backend no recibe archivos).
+# La API tiene permisos para generar URL firmadas de evidencias, consultar y modificar
+# datos en DynamoDB, enviar mensajes a SQS y utilizar la clave KMS.
+
 resource "aws_iam_role_policy" "tarea" {
   name = "permisos-de-la-api"
   role = aws_iam_role.tarea.id
@@ -166,7 +167,7 @@ resource "aws_iam_role_policy" "tarea" {
   })
 }
 
-# ---------- Tarea y servicio ----------
+# Tarea y servicio
 
 resource "aws_ecs_task_definition" "api" {
   family                   = local.nombre_servicio
@@ -208,7 +209,7 @@ resource "aws_ecs_task_definition" "api" {
   tags = var.etiquetas_comunes
 }
 
-# ---------- ALB ----------
+# ALB
 
 # aws-elb-alb-not-public: El ALB es el origen de CloudFront y debe ser alcanzable por internet; su grupo de seguridad solo admite la lista de prefijos gestionada de CloudFront.
 #tfsec:ignore:aws-elb-alb-not-public
@@ -296,8 +297,9 @@ resource "aws_ecs_service" "api" {
     container_port   = 3000
   }
 
-  # El autoescalado cambia desired_count y el despliegue de CI (deploy-api.yml) registra
-  # revisiones nuevas de la tarea con la imagen del commit: Terraform no debe revertirlos.
+  # El auto
+  # El escalado automático ajusta desired_count y el despliegue desde deploy.yml
+  # registra nuevas de la tarea con la imagen del commit.
   lifecycle {
     ignore_changes = [desired_count, task_definition]
   }
@@ -307,7 +309,7 @@ resource "aws_ecs_service" "api" {
   tags = var.etiquetas_comunes
 }
 
-# ---------- Application Auto Scaling ----------
+# Application Auto Scaling
 
 resource "aws_appautoscaling_target" "api" {
   service_namespace  = "ecs"

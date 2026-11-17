@@ -1,11 +1,13 @@
-# Datos del MVP: PostgreSQL 17 (verdad transaccional), DynamoDB (solo la ficha pública,
-# ADR 0001) y el bucket de evidencias. La tabla de idempotencia de la arquitectura objetivo
-# NO se crea: en el MVP la clave vive en Postgres (UNIQUE en health_events), dentro de la misma
-# transacción que la escritura, sin dos almacenes que puedan desincronizarse.
+# El MVP utiliza PostgreSQL 17 como base de datos principal, DynamoDB para
+# los perfiles públicos y S3 para guardar las evidencias.
+# No se crea una tabla de idempotencia en DynamoDB porque el MVP maneja las claves
+# en PostgreSQL mediante una restricción UNIQUE en health_events.
+# Así, la validación y el registro se realizan en una misma transacción,
+# evitando posibles diferencias entre dos bases de datos.
 
 data "aws_caller_identity" "actual" {}
 
-# ---------- RDS PostgreSQL ----------
+# RDS PostgreSQL
 
 resource "aws_db_subnet_group" "principal" {
   name       = "${var.nombre_proyecto}-db"
@@ -82,7 +84,7 @@ resource "aws_db_instance" "principal" {
   tags = var.etiquetas_comunes
 }
 
-# ---------- DynamoDB ----------
+# DynamoDB
 
 resource "aws_dynamodb_table" "perfil_publico" {
   name         = "${var.nombre_proyecto}-public-profile"
@@ -106,7 +108,7 @@ resource "aws_dynamodb_table" "perfil_publico" {
   tags = var.etiquetas_comunes
 }
 
-# ---------- S3 de evidencias ----------
+# S3 de evidencias
 
 # aws-s3-enable-bucket-logging: Sin logs de acceso de S3: la auditoría de expedientes (RN 9) vive en audit_log, no en logs de S3.
 #tfsec:ignore:aws-s3-enable-bucket-logging
