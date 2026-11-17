@@ -175,7 +175,7 @@ resource "aws_iam_policy" "despliegue" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      
+
       # El rol de despliegue puede leer y actualizar el estado de su entorno,
       # además de crear y eliminar su archivo de bloqueo.
 
@@ -206,7 +206,7 @@ resource "aws_iam_policy" "despliegue" {
       },
 
       # Se permite administrar los buckets de la web y de evidencias del proyecto,
-      # sin incluir el bucket utilizado para guardar el estado de Terraform.  
+      # sin incluir el bucket utilizado para guardar el estado de Terraform.
 
       {
         Sid      = "BucketsDelProyecto"
@@ -241,7 +241,7 @@ resource "aws_iam_policy" "despliegue" {
       },
 
       # Los permisos de IAM se aplican a los roles del proyecto.
-      # Solo se pueden adjuntar o quitar las políticas administradas permitidas.  
+      # Solo se pueden adjuntar o quitar las políticas administradas permitidas.
 
       {
         Sid    = "RolesDelProyecto"
