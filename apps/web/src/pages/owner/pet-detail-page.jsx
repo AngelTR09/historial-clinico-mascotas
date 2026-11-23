@@ -60,7 +60,7 @@ export function PaginaDetalleMascota() {
         defaultValues: { idMascota: petId, tipo: "chequeo", claveIdempotencia },
     });
     /**
-     * RN 2: un evento no se edita ni se borra — corregirlo crea uno nuevo
+     * RN 2: un evento no se edita ni se borra: corregirlo crea uno nuevo
      * que lo referencia por corrigeEventoId. Precarga tipo y veterinario
      * del original; fecha y descripción quedan en blanco para escribir la
      * corrección real.

@@ -8,7 +8,7 @@ export const esquemaUbigeo = z.string().regex(/^\d{6}$/, "El ubigeo debe tener 6
 /**
  * Envuelve un schema opcional para un campo de texto que puede llegar de
  * un <input> HTML sin tocar: el DOM manda "" (cadena vacía), nunca
- * `undefined`, y `.optional()` de zod solo exime a `undefined` — sin este
+ * `undefined`, y `.optional()` de zod solo exime a `undefined`. Sin este
  * preprocess, dejar un campo "opcional" en blanco falla la validación en
  * silencio (ningún mensaje de error se renderiza para ese campo) en vez
  * de tratarse como ausente.

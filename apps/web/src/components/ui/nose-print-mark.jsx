@@ -2,20 +2,20 @@
  * El motivo de la marca es la nariz del animal, cuya textura es
  * única para cada individuo, igual que la huella dactilar en las personas.
  * Este es el único lugar del sitio donde ese motivo
- * aparece como ilustración — el momento de "gastar el atrevimiento" en un
+ * aparece como ilustración: el momento de "gastar el atrevimiento" en un
  * solo sitio en vez de repetirlo por todas partes. La forma es la nariz
  * vista de frente (más ancha que alta, fosas en diagonal, surco central),
  * no una cara: las fosas no deben leerse como ojos.
  *
  * Con `animada`, el conjunto "respira" y las motas titilan de forma
- * escalonada — la huella nasal como signo de un animal vivo. Sin la prop,
+ * escalonada: la huella nasal como signo de un animal vivo. Sin la prop,
  * la ilustración es estática (por ejemplo en la ficha pública impresa).
  */
 export function MarcaHuellaNasal({ className = "", animada = false }) {
     return (<svg viewBox="0 0 200 200" className={`${animada ? "origin-center animate-respirar" : ""} ${className}`.trim()} aria-hidden="true">
       <ellipse cx="100" cy="104" rx="86" ry="60" fill="var(--color-pine-tint)" stroke="var(--color-pine)" strokeWidth="2.5"/>
 
-      {/* Fosas nasales: óvalos alargados en diagonal, no círculos — así no se leen como ojos. */}
+      {/* Fosas nasales: óvalos alargados en diagonal, no círculos, así no se leen como ojos. */}
       <ellipse cx="76" cy="96" rx="8" ry="17" fill="var(--color-pine)" transform="rotate(-24 76 96)"/>
       <ellipse cx="124" cy="96" rx="8" ry="17" fill="var(--color-pine)" transform="rotate(24 124 96)"/>
 

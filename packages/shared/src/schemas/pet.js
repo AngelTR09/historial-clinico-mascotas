@@ -46,7 +46,7 @@ export const esquemaCreacionMascota = z.object({
 });
 /**
  * Alta de camada: hasta 8 expedientes en un solo envío, transaccional
- * (sección 10 y 12 — nunca inserciones sueltas que puedan dejar crías
+ * (sección 10 y 12: nunca inserciones sueltas que puedan dejar crías
  * huérfanas si falla a mitad).
  */
 export const esquemaCreacionCamada = z.object({
@@ -54,7 +54,7 @@ export const esquemaCreacionCamada = z.object({
 });
 /**
  * Carga masiva de albergue: hasta 100 expedientes (sección 10). A esta
- * escala no es transaccional como la camada — va por cola, procesada de a
+ * escala no es transaccional como la camada: va por cola, procesada de a
  * una para no bloquear las escrituras del resto (sección 12). No hay un
  * actor "albergue" en el modelo: es un dueño más, usando este endpoint en
  * vez del alta individual o de la camada.
@@ -64,8 +64,8 @@ export const esquemaCargaMasivaMascotas = z.object({
 });
 /**
  * Estados que el propio dueño puede fijar directamente. `transferida` queda
- * fuera: solo la asigna el flujo de transferencia de dueño (`transfers`),
- * que todavía no existe.
+ * fuera: sigue en el enum de la base, pero hoy nada la asigna (canjear una
+ * transferencia cambia el dueño y deja el estado como estaba).
  */
 export const estadoMascotaEditableSchema = z.enum(["activa", "extraviada", "fallecida"]);
 /** RF: reportar una mascota como extraviada (o recuperada) desde su ficha. */

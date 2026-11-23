@@ -24,5 +24,3 @@ export const DIAS_VENTANA_RECORDATORIO_VACUNA = 30;
 export const MESES_VIGENCIA_DESPARASITACION = 3;
 /** Retención mínima del log de auditoría en años (RN 9). */
 export const ANIOS_RETENCION_AUDITORIA = 5;
-/** TTL de la tabla de idempotencia en DynamoDB, en días. */
-export const DIAS_TTL_IDEMPOTENCIA = 7;

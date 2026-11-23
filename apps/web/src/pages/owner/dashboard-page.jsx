@@ -123,7 +123,7 @@ export function PaginaPanel() {
         },
     });
     // Albergue: hasta 100 mascotas, procesadas en cola (no bloquea al resto).
-    // Una fila por línea, "nombre,especie" — más práctico que 100 campos de formulario.
+    // Una fila por línea, "nombre,especie", más práctico que 100 campos de formulario.
     const [textoMasivo, setTextoMasivo] = useState("");
     const mascotasMasivas = textoMasivo
         .split("\n")

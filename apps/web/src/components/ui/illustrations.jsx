@@ -51,7 +51,7 @@ const MATRIZ_QR = [
     "100000100", "111111101", "000101010", "110010111",
 ];
 
-/** Placa del collar con un QR ilustrativo — el objeto que explica el producto. */
+/** Placa del collar con un QR ilustrativo: el objeto que explica el producto. */
 export function PlacaQr({ className = "" }) {
     return (<svg viewBox="0 0 160 190" className={className} aria-hidden="true">
       {/* Argolla */}
