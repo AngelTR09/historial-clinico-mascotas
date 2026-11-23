@@ -18,7 +18,6 @@ export PATH="$falsos:$PATH"
 # `aws` falso: registra la llamada y responde según las variables de cada caso.
 cat > "$falsos/aws" <<'FIN'
 #!/usr/bin/env bash
-# `aws` falso para las pruebas: registra la llamada y responde según las variables de cada caso.
 echo "aws $*" >> "${BITACORA:?}"
 case "$1 $2" in
   "secretsmanager describe-secret") if [ "${SECRETOS:-con}" = con ]; then echo "AWSCURRENT"; else echo "None"; fi ;;
@@ -43,7 +42,6 @@ FIN
 # `docker` falso: registra la llamada y, como el real, lee la entrada estándar solo con --password-stdin.
 cat > "$falsos/docker" <<'FIN'
 #!/usr/bin/env bash
-# `docker` falso: registra la llamada y, como el real, lee la entrada estándar solo con --password-stdin.
 echo "docker $*" >> "${BITACORA:?}"
 if [[ "$*" == *"--password-stdin"* ]]; then cat > /dev/null; fi
 FIN

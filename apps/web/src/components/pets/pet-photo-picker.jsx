@@ -4,9 +4,9 @@ import { AvatarMascota } from "./pet-avatar";
 
 /**
  * Selector de foto estilo perfil de WhatsApp: círculo con una insignia de cámara que
- * abre dos opciones — "Tomar foto" (en el celular abre la cámara trasera directamente
- * gracias a `capture`) y "Elegir de la galería". No sube nada: entrega el `File` elegido
- * a `alElegir`, quien decide cuándo subirlo (al registrar o de inmediato).
+ * abre dos opciones: "Tomar foto" (en el celular abre la cámara trasera directamente
+ * gracias a "capture") y "Elegir de la galería". No sube nada: entrega el archivo
+ * elegido a al Elegir, quien decide cuándo subirlo (al registrar o de inmediato).
  */
 export function SelectorFotoMascota({ urlFoto, nombre = "tu mascota", alElegir, ocupado = false, error = null, tamano = "lg" }) {
     const [abierto, setAbierto] = useState(false);

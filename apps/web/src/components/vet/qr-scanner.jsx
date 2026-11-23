@@ -5,7 +5,7 @@ const ID_REGION = "qr-scanner-region";
  * Cámara real (getUserMedia) para escanear el QR de la placa. Requiere
  * un contexto seguro (https o localhost) y permiso del usuario; si
  * falla, `alError` avisa para que quien lo use ofrezca el campo de texto
- * manual como respaldo — la cámara nunca es el único camino.
+ * manual como respaldo: la cámara nunca es el único camino.
  */
 export function EscanerQr({ alEscanear, alError }) {
     const alEscanearRef = useRef(alEscanear);
