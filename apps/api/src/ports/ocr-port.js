@@ -1,5 +1,5 @@
 /**
- * PuertoOcr — contrato que debe cumplir cualquier adaptador de OCR.
+ * PuertoOcr: contrato que debe cumplir cualquier adaptador de OCR.
  * Procesamiento asíncrono y opcional (RN 8): nunca bloquea el registro
  * del evento.
  *

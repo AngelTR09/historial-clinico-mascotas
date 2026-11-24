@@ -1,5 +1,5 @@
 /**
- * PuertoCola — contrato que debe cumplir cualquier adaptador de cola.
+ * PuertoCola: contrato que debe cumplir cualquier adaptador de cola.
  * En local: cola en memoria con procesamiento diferido. En la nube: SQS + DLQ.
  *
  *   enqueue(topic, payload) -> void | Promise<void>

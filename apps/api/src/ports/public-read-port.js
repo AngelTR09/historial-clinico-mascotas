@@ -1,5 +1,5 @@
 /**
- * PuertoLecturaPublica — contrato que debe cumplir cualquier adaptador de
+ * PuertoLecturaPublica: contrato que debe cumplir cualquier adaptador de
  * lectura pública (RF 21). En local consulta PostgreSQL; en la nube, la
  * proyección desnormalizada en DynamoDB (RNF 7: el canal público debe
  * seguir respondiendo aunque Postgres esté en failover). El contrato de

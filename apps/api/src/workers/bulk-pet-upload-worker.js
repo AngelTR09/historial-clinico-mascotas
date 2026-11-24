@@ -5,7 +5,7 @@ import { duenos } from "../db/schema.js";
 import { registrarMascota } from "../use-cases/pets/register-pet.js";
 /**
  * Consumidor local del tópico 'bulk-pet-upload' (PuertoCola). A diferencia
- * de la camada, procesa cada mascota por separado — nunca en una sola
+ * de la camada, procesa cada mascota por separado, nunca en una sola
  * transacción del lote completo: a 100 expedientes, sostener una
  * transacción tan larga sería justo el problema que la sección 12
  * advierte evitar ("no bloquear las escrituras del resto"). Un fallo en

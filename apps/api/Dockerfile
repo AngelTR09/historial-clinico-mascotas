@@ -1,13 +1,13 @@
 # Contexto de build: la raíz del monorepo (necesario para resolver el
-# workspace de pnpm). Esta misma imagen sirve hoy para docker-compose local
-# y mañana para ECS Fargate: lo que cambia es el orquestador, no el Dockerfile.
+# workspace de pnpm). La misma imagen corre en docker-compose y en ECS Fargate:
+# cambia el orquestador, no el Dockerfile.
 FROM node:20-alpine
 
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
-# Copiamos primero solo los manifiestos de cada paquete del workspace para
-# que `pnpm install` quede cacheado mientras no cambien las dependencias.
+# Los manifiestos van antes que el código: así la capa de `pnpm install` se reusa
+# mientras no cambien las dependencias.
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/shared/package.json packages/shared/package.json
 COPY apps/api/package.json apps/api/package.json

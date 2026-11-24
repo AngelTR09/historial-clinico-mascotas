@@ -1,6 +1,6 @@
 const DIACRITICOS_COMBINABLES = new RegExp("[\\u0300-\\u036f]", "g");
 const PALABRAS_VACIAS = new Set(["vacuna", "vacunacion", "vacunación", "contra", "de", "del", "la", "el", "los", "las", "para"]);
-/** Minúsculas, sin tildes, sin puntuación — para comparar texto libre contra el catálogo. */
+/** Minúsculas, sin tildes y sin puntuación, para comparar texto libre contra el catálogo. */
 export function normalizarTexto(text) {
     return text
         .normalize("NFD")

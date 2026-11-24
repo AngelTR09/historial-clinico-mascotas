@@ -49,6 +49,6 @@ export class AdaptadorColaSqs {
         return envio;
     }
     subscribe(_topic, _handler) {
-        // Los consumidores son Lambdas disparadas por SQS (workers de la fase AWS).
+        // Vacío a propósito: en AWS consume la Lambda que SQS dispara, no este proceso
     }
 }
