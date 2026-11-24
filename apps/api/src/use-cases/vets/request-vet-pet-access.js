@@ -4,7 +4,7 @@ import { mascotas, veterinarios } from "../../db/schema.js";
 import { ErrorProhibido, ErrorNoEncontrado } from "../../domain/errors.js";
 /**
  * RN 10: escanear el QR de una mascota es lo que abre el acceso de
- * validación, acotado a esa mascota y a 4 horas — no un login general.
+ * validación, acotado a esa mascota y a 4 horas, no un login general.
  */
 export async function solicitarAccesoVeterinarioMascota(ports, idVeterinario, tokenQr) {
     const [veterinario] = await db.select({ estado: veterinarios.estado }).from(veterinarios).where(eq(veterinarios.id, idVeterinario)).limit(1);

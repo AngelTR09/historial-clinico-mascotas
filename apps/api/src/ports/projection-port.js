@@ -1,5 +1,5 @@
 /**
- * PuertoProyeccion — contrato que debe cumplir cualquier adaptador que escriba el modelo de
+ * PuertoProyeccion: contrato que debe cumplir cualquier adaptador que escriba el modelo de
  * lectura del canal público (la proyección desnormalizada del QR). Es el lado de escritura de
  * `PuertoLecturaPublica`. En local: un mapa en memoria. En la nube: DynamoDB.
  *

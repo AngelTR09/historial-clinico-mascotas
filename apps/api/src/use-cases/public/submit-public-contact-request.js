@@ -4,7 +4,7 @@ import { duenos, mascotas } from "../../db/schema.js";
 import { ErrorNoEncontrado } from "../../domain/errors.js";
 /**
  * RN 5: el canal público nunca expone datos personales del dueño. Quien
- * encuentra a la mascota nunca ve el correo/teléfono real — el mensaje se
+ * encuentra a la mascota nunca ve el correo/teléfono real: el mensaje se
  * enruta por `PuertoNotificacion` (SNS en la nube, consola en local) y el dueño es
  * quien decide si responde, por el canal que el hallador sí puso en el
  * formulario.

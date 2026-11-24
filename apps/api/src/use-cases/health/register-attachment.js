@@ -31,8 +31,8 @@ async function contarAdjuntosHoy(idDueno) {
 /**
  * RF 06. El OCR se encola y se procesa aparte (RN 8): esta función nunca
  * espera a `PuertoOcr`, solo deja la evidencia guardada. Si el dueño ya
- * superó su cuota diaria (sección 11), la evidencia igual se guarda —
- * nunca se rechaza la escritura— pero queda `omitido` sin encolar el
+ * superó su cuota diaria (sección 11), la evidencia igual se guarda
+ * (nunca se rechaza la escritura) pero queda `omitido` sin encolar el
  * trabajo de OCR, para no gastar cuota real de Textract en la nube.
  */
 export async function registrarAdjunto(ports, idDueno, input) {

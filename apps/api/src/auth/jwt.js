@@ -30,7 +30,7 @@ export async function verifyVetToken(token) {
 }
 /**
  * RN 10: el acceso de validación nace de escanear el QR de una mascota
- * puntual y expira a las `HORAS_EXPIRACION_ACCESO_VALIDADOR` horas — no
+ * puntual y expira a las `HORAS_EXPIRACION_ACCESO_VALIDADOR` horas: no
  * es una sesión general del veterinario.
  */
 export async function signVetPetAccessToken(idVeterinario, idMascota) {

@@ -31,7 +31,7 @@ function aMascota(row) {
 }
 /**
  * Alta de camada (RNF: hasta 8 expedientes, < 3 s, atómica). Todo el lote
- * corre dentro de una sola transacción — si cualquier mascota falla tras
+ * corre dentro de una sola transacción: si cualquier mascota falla tras
  * agotar sus reintentos de código único, ninguna de sus hermanas queda
  * insertada (sección 12: nunca inserciones sueltas que dejen crías
  * huérfanas). Es la misma lógica de reintento de `registrarMascota`, pero

@@ -26,7 +26,7 @@ afterEach(async () => {
     }
     await limpiarFixtures(rastreador);
 });
-describe("registrarAdjunto — cuota de OCR", () => {
+describe("registrarAdjunto: cuota de OCR", () => {
     it("encola OCR normalmente mientras el dueño no supere la cuota diaria", async () => {
         const { idDueno, idMascota } = await crearDuenoYMascotaAislados(rastreador);
         const idEvento = await crearEventoSaludAislado(rastreador, { idMascota, idDueno });

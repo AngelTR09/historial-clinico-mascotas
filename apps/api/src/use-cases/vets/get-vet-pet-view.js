@@ -59,7 +59,7 @@ async function aAdjuntoVeterinario(ports, fila) {
 }
 
 /**
- * RF 13 / RN 10: lo que ve el veterinario tras escanear el QR — ficha de la
+ * RF 13 / RN 10: lo que ve el veterinario tras escanear el QR: ficha de la
  * mascota e historial completo con su evidencia. Ya no hay bandeja de validación
  * (RN 3): lo que registra el veterinario nace `verificado` y lo que declaró el dueño
  * se distingue por su `nivelConfianza`. `idMascota` viene del token de acceso acotado, nunca de un dato

@@ -16,7 +16,7 @@ afterEach(async () => {
     }
     await limpiarFixtures(rastreador);
 });
-/** Mascota y dos dueños propios de este test — nunca se toca el seed, así que no hace falta revertir nada. */
+/** Mascota y dos dueños propios de este test: nunca se toca el seed, así que no hace falta revertir nada. */
 async function mascotaAisladaConDosDuenos() {
     const { idDueno, idMascota } = await crearDuenoYMascotaAislados(rastreador);
     const otroDueno = await crearDuenoAislado(rastreador);
